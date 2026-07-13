@@ -1,0 +1,33 @@
+# AgriCast Implementation Tasks
+
+- [x] Initialize project directories and install backend dependencies (`requirements.txt`)
+- [x] Setup Flask core configurations, MongoDB database connector, and basic routing framework (`app.py`, `config.py`, `database/db.py`)
+- [x] Build AI Sowing Advisory Engine: dataset generator, model training, and loader (`ai/train.py`, `ai/model_loader.py`)
+- [x] Write Core Service Integrations:
+  - [x] Geocoding & Weather service (`services/weather_service.py`)
+  - [x] SMS delivery & Mock Logger (`services/sms_service.py`)
+  - [x] Recommendation algorithm & ML wrapper (`services/recommendation_service.py`)
+- [x] Develop Flask API Blueprints under `routes/`:
+  - [x] Authentication (`auth.py`)
+  - [x] Profile and user metadata (`profile.py`)
+  - [x] Weather forecast access (`weather.py`)
+  - [x] Sowing recommendations & history (`recommendations.py`)
+  - [x] Crop calendars CRUD (`crops.py`)
+  - [x] Alerts management (`alerts.py`)
+  - [x] SMS dispatch logs (`sms.py`)
+  - [x] Admin analytics aggregates (`admin.py`)
+- [x] Implement APScheduler for daily 6:00 AM forecast downloads and advisory broadcasts (`services/scheduler.py`)
+- [x] Initialize React + Tailwind CSS project with Vite under `frontend/`
+- [x] Setup Frontend design system, tailwind configurations, and dynamic Multi-language / Session React contexts
+- [x] Construct Smartphone Farmer interface views:
+  - [x] Landing page
+  - [x] Farmer dashboard (5-day weather, Leaflet map with location pins, Chart.js weather charts)
+  - [x] Sowing Recommendation Hub with PDF download option
+  - [x] Farmer settings profile page
+- [x] Construct Admin interface views:
+  - [x] Analytics KPI counters & charts (Farmer distributions, SMS statistics)
+  - [x] Leaflet Map showing all farmer locations and active hazard alerts
+  - [x] Crop database manager (CRUD thresholds)
+  - [x] Manual SMS Broadcaster dashboard
+- [x] Implement and run test suites to verify backend endpoints and AI suitability correctness
+- [x] Complete walkthrough.md summarizing accomplishments and setup instructions
