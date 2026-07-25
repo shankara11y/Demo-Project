@@ -200,7 +200,7 @@ class Database:
         self.mock_mode = False
         self.using_atlas = False
         try:
-            self.client = MongoClient(Config.MONGO_URI, serverSelectionTimeoutMS=2000)
+            self.client = MongoClient(Config.MONGO_URI, serverSelectionTimeoutMS=5000)
             self.client.admin.command('ping')
             # Run trial read query on users collection to catch TLS replica-set alerts on startup
             self.client.get_database().Users.find_one({})
@@ -211,7 +211,7 @@ class Database:
         except Exception as e:
             logger.error(f"Failed to connect to MongoDB Atlas: {e}")
             try:
-                self.client = MongoClient("mongodb://localhost:27017/agricast", serverSelectionTimeoutMS=2000)
+                self.client = MongoClient("mongodb://localhost:27017/agricast", serverSelectionTimeoutMS=5000)
                 self.client.admin.command('ping')
                 self.client.get_database().Users.find_one({})
                 self.db = self.client.get_database()
