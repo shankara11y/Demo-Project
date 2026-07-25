@@ -40,11 +40,11 @@ def create_app():
     def missing_token_callback(error):
         return jsonify({"error": "Authorization token is missing", "code": "token_missing"}), 401
 
-    # Setup Rate Limiter
+    # Setup Rate Limiter with generous limits for seamless development & demo presentations
     limiter = Limiter(
         key_func=get_remote_address,
         app=app,
-        default_limits=["500 per day", "100 per hour"],
+        default_limits=["10000 per day", "2000 per hour"],
         storage_uri="memory://"
     )
 
