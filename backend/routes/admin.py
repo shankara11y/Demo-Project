@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt
 from bson import ObjectId
 from datetime import datetime, timedelta
 import math
+import re
 from database.db import db
 from services.weather_service import get_sentinel2_soil_data, get_current_weather
 from services.soil_service import get_soil_properties
@@ -36,6 +37,7 @@ def get_farmers():
             "farm_size": farmer.get("farm_size", 0.0),
             "preferred_language": farmer.get("preferred_language", "en"),
             "crop_types": farmer.get("crop_types", []),
+            "verified_for_sms": farmer.get("verified_for_sms", False),
             "latitude": None,
             "longitude": None
         }
@@ -50,6 +52,32 @@ def get_farmers():
         results.append(farmer_data)
         
     return jsonify(results), 200
+
+@admin_bp.route("/admin/farmers/<farmer_id>/verify", methods=["POST"])
+@jwt_required()
+def verify_farmer_sms(farmer_id):
+    """
+    Manually marks a farmer's phone number as verified in the database (Admin only).
+    """
+    claims = get_jwt()
+    if claims.get("role") != "admin":
+        return jsonify({"error": "Unauthorized. Admin privileges required."}), 403
+        
+    try:
+        f_oid = ObjectId(farmer_id)
+    except Exception:
+        return jsonify({"error": "Invalid farmer ID format"}), 400
+        
+    farmer = db.users.find_one({"_id": f_oid, "role": "farmer"})
+    if not farmer:
+        return jsonify({"error": "Farmer not found"}), 404
+        
+    db.users.update_one({"_id": f_oid}, {"$set": {"verified_for_sms": True}})
+    
+    return jsonify({
+        "message": f"Farmer {farmer.get('name')} marked as SMS verified.",
+        "verified_for_sms": True
+    }), 200
 
 @admin_bp.route("/weatherLogs", methods=["GET"])
 @jwt_required()
@@ -474,6 +502,110 @@ def query_geofence():
         "count": len(farmer_id_strings)
     }), 200
 
+def clean_and_shorten_map_sms(raw_message, farmer=None):
+    """
+    Cleans emojis and Unicode symbols for plain text SMS.
+    If message length > 160 characters, generates a concise SMS (max 160 chars)
+    preserving: alert type, district/village, crop, and main advisory/action.
+    """
+    if not raw_message:
+        return ""
+
+    # Remove emojis and special non-text bullet symbols (e.g. 🌱, ▶, 🚨, ⚡, 🌧️, 🌾, •, ■, etc.)
+    emoji_symbol_pattern = re.compile(
+        "[\U0001f600-\U0001f64f"
+        "\U0001f300-\U0001f5ff"
+        "\U0001f680-\U0001f6ff"
+        "\U0001f700-\U0001f77f"
+        "\U0001f780-\U0001f7ff"
+        "\U0001f800-\U0001f8ff"
+        "\U0001f900-\U0001f9ff"
+        "\U0001fa00-\U0001fa6f"
+        "\U0001fa70-\U0001faff"
+        "\u2600-\u26ff"
+        "\u2700-\u27bf"
+        "\u25a0-\u25ff"
+        "\u2300-\u23ff"
+        "\u2b00-\u2bff"
+        "🌱▶🚨⚡🌧🌾•■◆★☆✓✔✕✖]"
+    )
+    cleaned = emoji_symbol_pattern.sub("", raw_message)
+    
+    raw_lines = [line.strip() for line in cleaned.split("\n") if line.strip()]
+    cleaned_single_line = re.sub(r'\s+', ' ', " ".join(raw_lines)).strip()
+
+    # Return plain text directly if 160 chars or less
+    if len(cleaned_single_line) <= 160:
+        return cleaned_single_line
+
+    # Parse components for concise SMS generation
+    alert_type = ""
+    location = ""
+    crop = ""
+    actions = []
+
+    for line in raw_lines:
+        if "|" in line:
+            parts = [p.strip() for p in line.split("|")]
+            for p in parts:
+                if any(kw in p.upper() for kw in ["WINDOW", "ALERT", "इशारा", "सल्लागार", "ADVISORY", "SOWING", "IRRIGATION", "सिंचन"]) and not alert_type:
+                    alert_type = p
+                elif any(kw in p for kw in ["District", "जिल्हा", "Village", "गाव", "Taluka", "तालुका"]) and not location:
+                    location = p
+                elif ("Crop:" in p or "पीक:" in p) and not crop:
+                    crop = p.replace("Crop:", "").replace("पीक:", "").strip()
+        elif "Crop:" in line or "पीक:" in line:
+            c_val = line.replace("Crop:", "").replace("पीक:", "").split("|")[0].split("-")[0].strip()
+            if not crop:
+                crop = c_val
+        elif any(kw in line for kw in ["Sow", "Apply", "Do not", "पेरणी", "पाणी", "साठवणूक", "निचरा", "fertilizer", "water", "irrigation"]):
+            actions.append(line)
+
+    if not alert_type:
+        if raw_lines and len(raw_lines[0]) <= 45:
+            alert_type = raw_lines[0].split("|")[0].strip()
+        else:
+            alert_type = "AGRI ALERT"
+
+    if not location and farmer:
+        v = farmer.get("village")
+        d = farmer.get("district")
+        location = f"{v}, {d}".strip(", ") if v and d else (v or d or "")
+    if not location:
+        location = "Maharashtra"
+
+    if not crop and farmer:
+        crops = farmer.get("crop_types") or farmer.get("crop")
+        if isinstance(crops, list) and crops:
+            crop = crops[0]
+        elif isinstance(crops, str):
+            crop = crops
+
+    is_marathi = bool(re.search(r'[\u0900-\u097F]', raw_message))
+
+    if actions:
+        action_text = ". ".join(actions[:2])
+    else:
+        action_text = raw_lines[0] if raw_lines else cleaned_single_line
+
+    if is_marathi:
+        head = f"{alert_type} | {location}"
+        if crop:
+            head += f" | पीक: {crop}"
+        concise = f"{head}. सल्ला: {action_text}"
+    else:
+        head = f"{alert_type} | {location}"
+        if crop:
+            head += f" | Crop: {crop}"
+        concise = f"{head}. Action: {action_text}"
+
+    concise = re.sub(r'\s+', ' ', concise).strip()
+
+    if len(concise) > 160:
+        concise = concise[:157].rstrip() + "..."
+
+    return concise
+
 @admin_bp.route("/admin/map/send-alert", methods=["POST"])
 @jwt_required()
 def map_send_alert():
@@ -496,26 +628,53 @@ def map_send_alert():
             continue
             
     farmers = list(db.users.find({"_id": {"$in": object_ids}}))
-    mobiles = [f["mobile"] for f in farmers if f.get("mobile")]
     
-    if not mobiles:
-        return jsonify({"message": "No valid mobile numbers found for selected farmers.", "success_count": 0, "total_count": 0}), 200
-        
-    from services.sms_service import send_sms
+    print("=== SMS BROADCAST SELECTEE LIST ===", flush=True)
+    for f in farmers:
+        selected = f.get("verified_for_sms", False)
+        print(f"Farmer Name: {f.get('name')} | Mobile Number: {f.get('mobile')} | Village: {f.get('village')} | verified_for_sms: {selected} | Status: {'SELECTED' if selected else 'SKIPPED'}", flush=True)
+    print("====================================", flush=True)
+
     success_count = 0
-    results = []
+    failed_count = 0
+    skipped_unverified = 0
     
-    for mobile in mobiles:
-        res = send_sms(mobile, message)
-        results.append(res)
+    from services.sms_service import send_sms
+    
+    for f in farmers:
+        if not f.get("verified_for_sms", False):
+            skipped_unverified += 1
+            continue
+            
+        mobile = f.get("mobile")
+        if not mobile:
+            failed_count += 1
+            continue
+            
+        # Format plain-text, <= 160 character SMS specifically for Map Broadcast delivery
+        sms_message = clean_and_shorten_map_sms(message, farmer=f)
+
+        res = send_sms(
+            mobile=mobile,
+            message=sms_message,
+            farmer_id=f["_id"],
+            farmer_name=f.get("name"),
+            village=f.get("village"),
+            district=f.get("district")
+        )
         if res["success"]:
             success_count += 1
+        else:
+            failed_count += 1
             
-    total_count = len(mobiles)
+    total_count = success_count + failed_count
     return jsonify({
-        "message": f"Alert dispatch complete. Dispatched to {success_count}/{total_count} farmers.",
+        "message": f"Alert dispatch complete. Dispatched to {success_count}/{total_count} farmers. Skipped {skipped_unverified} unverified.",
         "success_count": success_count,
-        "total_count": total_count
+        "total_count": total_count,
+        "success": success_count,
+        "failed": failed_count,
+        "skipped_unverified": skipped_unverified
     }), 200
 
 @admin_bp.route("/admin/map/district-details", methods=["GET"])
@@ -707,3 +866,54 @@ def get_admin_weather_current():
             }), response.status_code
     except Exception as e:
         return jsonify({"error": f"Failed to contact OpenWeatherMap: {str(e)}"}), 500
+
+@admin_bp.route("/admin/automation/status", methods=["GET"])
+@jwt_required()
+def get_automation_status():
+    """
+    Returns live telemetry & metrics for the Automated Weather Advisory Engine (Admin only).
+    """
+    claims = get_jwt()
+    if claims.get("role") != "admin":
+        return jsonify({"error": "Unauthorized. Admin privileges required."}), 403
+
+    status_doc = db.automation_status.find_one({"_id": "current_status"}) or {}
+    if "_id" in status_doc:
+        del status_doc["_id"]
+
+    # Provide defaults if job has not run yet
+    if not status_doc:
+        verified_count = db.users.count_documents({"role": "farmer", "verified_for_sms": True})
+        status_doc = {
+            "status": "Operational (Scheduler Active)",
+            "last_scan_time": datetime.now().isoformat(),
+            "next_scan_time": (datetime.now() + timedelta(hours=1)).isoformat(),
+            "farmers_checked": verified_count,
+            "alerts_generated": 0,
+            "sms_sent": 0,
+            "sms_failed": 0,
+            "suppressed_duplicate": 0
+        }
+
+    return jsonify(status_doc), 200
+
+@admin_bp.route("/admin/automation/trigger", methods=["POST"])
+@jwt_required()
+def trigger_automation_scan():
+    """
+    Manually triggers an immediate execution of the Automated Advisory Engine (Admin only).
+    """
+    claims = get_jwt()
+    if claims.get("role") != "admin":
+        return jsonify({"error": "Unauthorized. Admin privileges required."}), 403
+
+    from services.automation_engine import run_hourly_auto_advisory
+    try:
+        summary = run_hourly_auto_advisory()
+        return jsonify({
+            "message": "Automated Weather Advisory Engine scan completed successfully.",
+            "summary": summary
+        }), 200
+    except Exception as e:
+        return jsonify({"error": f"Automation engine execution failed: {str(e)}"}), 500
+

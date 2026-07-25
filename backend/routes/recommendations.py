@@ -44,7 +44,9 @@ def recommend_crop():
         recommendation = generate_crop_recommendation(
             farmer_id=user_id if role == "farmer" else None,
             crop_id=crop_id,
-            weather_data=weather
+            weather_data=weather,
+            lat=lat,
+            lon=lon
         )
         return jsonify(recommendation), 200
     except ValueError as val_err:

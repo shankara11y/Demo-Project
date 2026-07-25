@@ -13,10 +13,9 @@ class Config:
     
     # API Keys & Credentials
     OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY", "")  # Empty triggers mock mode
-    MSG91_AUTH_KEY = os.getenv("MSG91_AUTH_KEY", "")          # Empty triggers mock mode
-    MSG91_SENDER_ID = os.getenv("MSG91_SENDER_ID", "AGRCST")
-    MSG91_ROUTE = os.getenv("MSG91_ROUTE", "4")                # Transactional route
-    MSG91_TEMPLATE_ID = os.getenv("MSG91_TEMPLATE_ID", "")    # DLT Template ID
+    TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
+    TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
+    TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER", "")
     
     # Default Admin Credentials
     ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@agricast.gov.in")

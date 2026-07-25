@@ -127,7 +127,7 @@ def get_dashboard():
         crop_doc = db.crops.find_one({"name": crop_name})
         if crop_doc:
             try:
-                advisory = generate_crop_recommendation(user_id, crop_doc["_id"], current_weather)
+                advisory = generate_crop_recommendation(user_id, crop_doc["_id"], current_weather, lat=lat, lon=lon)
                 crop_advisories.append(advisory)
             except Exception as e:
                 print(f"Error computing dashboard advisory for {crop_name}: {e}")

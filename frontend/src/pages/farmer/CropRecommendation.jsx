@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { AppContext } from "../../context/AppContext";
 import axios from "axios";
 import { 
@@ -11,6 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export const CropRecommendation = () => {
   const { token, API_URL, translate } = useContext(AppContext);
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const [crops, setCrops] = useState([]);
@@ -43,7 +45,7 @@ export const CropRecommendation = () => {
         setHistory(historyRes.data);
       } catch (err) {
         console.error(err);
-        setError("Unable to retrieve crop templates.");
+        setError(t("error_crop_templates"));
       }
     };
 
@@ -84,7 +86,7 @@ export const CropRecommendation = () => {
 
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.error || "AI advisory failed. Try again.");
+      setError(err.response?.data?.error || t("advisory_failed_try_again"));
     } finally {
       setAnalyzing(false);
     }
@@ -104,10 +106,10 @@ export const CropRecommendation = () => {
             to="/farmer/dashboard" 
             className="flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-white"
           >
-            <ArrowLeft className="w-4 h-4" /> {translate("dashboard")}
+            <ArrowLeft className="w-4 h-4" /> {t("dashboard")}
           </Link>
           <h2 className="font-extrabold text-base bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent">
-            AgriCast AI Advisor
+            {t("app_title")} {t("ai_advisor")}
           </h2>
           <div className="w-16"></div> {/* Spacer */}
         </div>
@@ -120,7 +122,7 @@ export const CropRecommendation = () => {
         <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl shadow-md print:hidden">
           <h1 className="text-xl font-extrabold mb-4 flex items-center gap-1.5 text-slate-800 dark:text-white">
             <Sparkles className="w-5 h-5 text-primary-500" />
-            {translate("select_crop_prompt")}
+            {t("select_crop_prompt")}
           </h1>
 
           {error && (
@@ -131,7 +133,7 @@ export const CropRecommendation = () => {
 
           <div className="flex flex-col sm:flex-row gap-4 items-end">
             <div className="flex-1 w-full">
-              <label className="block text-xs font-bold text-slate-400 mb-1">Target Crop</label>
+              <label className="block text-xs font-bold text-slate-400 mb-1">{t("target_crop")}</label>
               <select
                 value={selectedCropId}
                 onChange={(e) => setSelectedCropId(e.target.value)}
@@ -139,7 +141,7 @@ export const CropRecommendation = () => {
               >
                 {crops.map((c) => (
                   <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900">
-                    {c.name} ({c.season} Crop)
+                    {c.name} ({c.season} {t("crop")})
                   </option>
                 ))}
               </select>
@@ -153,12 +155,12 @@ export const CropRecommendation = () => {
               {analyzing ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  {translate("loading")}
+                  {t("loading")}
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  {translate("generate_rec")}
+                  {t("generate_rec")}
                 </>
               )}
             </button>
@@ -177,12 +179,12 @@ export const CropRecommendation = () => {
               {/* Printable header */}
               <div className="hidden print:flex items-center justify-between border-b pb-4 mb-6">
                 <div>
-                  <h1 className="text-xl font-bold text-emerald-800">AgriCast Hyperlocal AI Sowing Advisory</h1>
-                  <p className="text-xs text-slate-500">Advisory Generated on: {new Date(result.timestamp).toLocaleString()}</p>
+                  <h1 className="text-xl font-bold text-emerald-800">{t("sowing_advisory_report")}</h1>
+                  <p className="text-xs text-slate-500">{t("generated_on")}: {new Date(result.timestamp).toLocaleString()}</p>
                 </div>
                 <div className="text-right">
-                  <h2 className="font-extrabold text-sm text-slate-800">Crop: {result.crop_name}</h2>
-                  <p className="text-xs text-slate-500">Status: {result.suitability}</p>
+                  <h2 className="font-extrabold text-sm text-slate-800">{t("crop")}: {result.crop_name}</h2>
+                  <p className="text-xs text-slate-500">{t("status")}: {result.suitability === "Suitable" ? t("suitable") : result.suitability === "Moderately Suitable" ? t("moderately_suitable") : t("not_suitable")}</p>
                 </div>
               </div>
 
@@ -205,14 +207,16 @@ export const CropRecommendation = () => {
                     )}
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{translate("suitability")}</p>
-                    <h2 className="text-2xl font-black text-slate-900 dark:text-white mt-0.5">{result.crop_name} – {result.suitability}</h2>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t("suitability")}</p>
+                    <h2 className="text-2xl font-black text-slate-900 dark:text-white mt-0.5">
+                      {result.crop_name} – {result.suitability === "Suitable" ? t("suitable") : result.suitability === "Moderately Suitable" ? t("moderately_suitable") : t("not_suitable")}
+                    </h2>
                   </div>
                 </div>
 
                 <div className="text-left sm:text-right bg-slate-50 dark:bg-slate-800 px-5 py-3 rounded-2xl shrink-0">
-                  <p className="text-xs text-slate-400 font-bold">{translate("confidence")}</p>
-                  <p className="text-xl font-black text-slate-800 dark:text-white">{result.confidence}% Match</p>
+                  <p className="text-xs text-slate-400 font-bold">{t("confidence")}</p>
+                  <p className="text-xl font-black text-slate-800 dark:text-white">{result.confidence}% {t("match")}</p>
                 </div>
               </div>
 
@@ -221,7 +225,7 @@ export const CropRecommendation = () => {
                 <div className="p-5 rounded-2xl bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/10 flex items-start gap-3">
                   <Calendar className="w-5 h-5 text-emerald-600 mt-0.5 shrink-0" />
                   <div>
-                    <h4 className="text-sm font-extrabold text-emerald-700 dark:text-emerald-400">{translate("sowing_window")}</h4>
+                    <h4 className="text-sm font-extrabold text-emerald-700 dark:text-emerald-400">{t("sowing_window")}</h4>
                     <p className="text-sm font-bold text-slate-700 dark:text-slate-300 mt-1">{result.recommended_date}</p>
                   </div>
                 </div>
@@ -229,7 +233,7 @@ export const CropRecommendation = () => {
                 <div className="p-5 rounded-2xl bg-rose-500/5 dark:bg-rose-500/10 border border-rose-500/10 flex items-start gap-3">
                   <AlertTriangle className="w-5 h-5 text-rose-600 mt-0.5 shrink-0" />
                   <div>
-                    <h4 className="text-sm font-extrabold text-rose-700 dark:text-rose-400">{translate("avoid_window")}</h4>
+                    <h4 className="text-sm font-extrabold text-rose-700 dark:text-rose-400">{t("avoid_window")}</h4>
                     <p className="text-sm font-bold text-slate-700 dark:text-slate-300 mt-1">{result.avoid_date}</p>
                   </div>
                 </div>
@@ -238,7 +242,7 @@ export const CropRecommendation = () => {
               {/* Explanatory Reasons */}
               <div className="space-y-3">
                 <h3 className="text-sm font-extrabold text-slate-500 uppercase tracking-wider flex items-center gap-1">
-                  <Info className="w-4 h-4" /> {translate("reasons_header")}
+                  <Info className="w-4 h-4" /> {t("reasons_header")}
                 </h3>
                 <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {result.reasons.map((reason, index) => (
@@ -255,12 +259,12 @@ export const CropRecommendation = () => {
 
               {/* Print / Action panels */}
               <div className="flex justify-between items-center pt-6 border-t border-slate-100 dark:border-slate-800 print:hidden">
-                <span className="text-xs text-slate-400">Recommendation generated by AI classification.</span>
+                <span className="text-xs text-slate-400">{t("rec_disclaimer")}</span>
                 <button
                   onClick={handleDownloadPDF}
                   className="px-5 py-2.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 font-bold text-xs text-slate-700 dark:text-slate-200 flex items-center gap-1.5 transition-all"
                 >
-                  <Download className="w-4 h-4" /> {translate("pdf_download")}
+                  <Download className="w-4 h-4" /> {t("pdf_download")}
                 </button>
               </div>
 
@@ -271,22 +275,22 @@ export const CropRecommendation = () => {
         {/* Sowing History Logs */}
         <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl shadow-md print:hidden">
           <h3 className="font-extrabold text-slate-500 text-sm uppercase tracking-wider mb-4 flex items-center gap-1.5">
-            <Calendar className="w-5 h-5" /> Previous Sowing Recommendations
+            <Calendar className="w-5 h-5" /> {t("previous_recommendations")}
           </h3>
 
           {history.length === 0 ? (
             <div className="py-8 text-center text-slate-400 text-sm">
-              Your previous sowing advisories will appear here.
+              {t("no_previous_advisories")}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 font-bold">
-                    <th className="pb-3">Crop Name</th>
-                    <th className="pb-3">Analysis Date</th>
-                    <th className="pb-3">Suitability</th>
-                    <th className="pb-3">Confidence</th>
+                    <th className="pb-3">{t("crop_name")}</th>
+                    <th className="pb-3">{t("analysis_date")}</th>
+                    <th className="pb-3">{t("suitability")}</th>
+                    <th className="pb-3">{t("confidence")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -302,7 +306,7 @@ export const CropRecommendation = () => {
                             ? "bg-amber-500/10 text-amber-600"
                             : "bg-rose-500/10 text-rose-600"
                         }`}>
-                          {h.suitability}
+                          {h.suitability === "Suitable" ? t("suitable") : h.suitability === "Moderately Suitable" ? t("moderately_suitable") : t("not_suitable")}
                         </span>
                       </td>
                       <td className="py-3 font-bold">{h.confidence}%</td>

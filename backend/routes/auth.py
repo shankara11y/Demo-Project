@@ -70,7 +70,8 @@ def register():
         "farm_size": float(farm_size),
         "preferred_language": preferred_language,
         "crop_types": crop_types,
-        "role": "farmer"
+        "role": "farmer",
+        "verified_for_sms": False
     }
 
     try:

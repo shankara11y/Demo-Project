@@ -36,14 +36,20 @@ SUITABILITY_TRANSLATION = {
 }
 
 def run_daily_advisory_broadcast():
-    print(f"[SCHEDULER] Daily 6:00 AM job started at {datetime.now()}")
+    print(f"[SCHEDULER AUDIT] Daily 6:00 AM job started at {datetime.now()}", flush=True)
     
-    farmers = list(db.users.find({"role": "farmer"}))
-    print(f"[SCHEDULER] Found {len(farmers)} farmer(s) for daily updates.")
+    # Filter strictly for verified farmers
+    farmers = list(db.users.find({"role": "farmer", "verified_for_sms": True}))
+    print(f"[SCHEDULER AUDIT] Found {len(farmers)} verified farmer(s) for daily updates.", flush=True)
     
     for farmer in farmers:
         farmer_id = farmer["_id"]
-        mobile = farmer["mobile"]
+        farmer_name = farmer.get("name", "Unknown Farmer")
+        mobile = farmer.get("mobile")
+
+        if not farmer.get("verified_for_sms", False):
+            print(f"[SCHEDULER AUDIT] Skipping unverified farmer {farmer_name} ({mobile})", flush=True)
+            continue
         lang = farmer.get("preferred_language", "en")
         if lang not in ADVISORY_TEMPLATES:
             lang = "en"
@@ -162,10 +168,43 @@ def run_daily_advisory_broadcast():
 
     print(f"[SCHEDULER] Daily 6:00 AM job completed at {datetime.now()}")
 
+_scheduler = None
+
 def start_scheduler():
+    global _scheduler
+    if _scheduler is not None and _scheduler.running:
+        print("[SCHEDULER] BackgroundScheduler is already running. Skipping duplicate start.", flush=True)
+        return _scheduler
+
+    from services.automation_engine import run_hourly_auto_advisory
+    from services.sms_service import process_sms_queue
     scheduler = BackgroundScheduler()
-    # Runs everyday at 6:00 AM local time
-    scheduler.add_job(run_daily_advisory_broadcast, 'cron', hour=6, minute=0)
+    # Job 1: Existing daily morning broadcast at 6:00 AM local time
+    scheduler.add_job(
+        run_daily_advisory_broadcast, 
+        'cron', 
+        hour=6, 
+        minute=0,
+        id='daily_advisory_broadcast',
+        name='Daily Morning Advisory Broadcast'
+    )
+    # Job 2: Fully automated weather & sowing advisory monitoring engine running every 60 minutes
+    scheduler.add_job(
+        run_hourly_auto_advisory, 
+        'interval', 
+        hours=1,
+        id='hourly_auto_advisory',
+        name='Hourly Automated Weather Advisory Engine'
+    )
+    # Job 3: Gateway Outage Queue Retry Engine running every 5 minutes
+    scheduler.add_job(
+        process_sms_queue,
+        'interval',
+        minutes=5,
+        id='sms_queue_retry_engine',
+        name='Gateway Outage Queue Retry Engine'
+    )
     scheduler.start()
-    print("[SCHEDULER] APScheduler started. Sowing advice broadcast job registered at 6:00 AM daily.")
+    _scheduler = scheduler
+    print("[SCHEDULER] APScheduler started. Registered: 1) 6:00 AM Daily Broadcast 2) Hourly Auto Advisory Engine 3) 5-Min SMS Queue Retry Engine.", flush=True)
     return scheduler

@@ -3,7 +3,7 @@ from bson import ObjectId
 from database.db import db
 from ai.model_loader import predict_suitability
 
-def generate_crop_recommendation(farmer_id, crop_id, weather_data):
+def generate_crop_recommendation(farmer_id, crop_id, weather_data, lat=None, lon=None):
     """
     Triggers AI model prediction based on weather data, real ISRIC SoilGrids parameters,
     and crop requirements. Saves recommendation entry in MongoDB.
@@ -17,16 +17,39 @@ def generate_crop_recommendation(farmer_id, crop_id, weather_data):
     if not crop_reqs:
         raise ValueError("Crop requirements thresholds not configured")
 
-    # 2. Fetch Soil properties from real SoilGrids API
+    # 2. Fetch Soil properties and Weather Forecast
     soil_data = None
-    if farmer_id:
+    forecast_list = None
+    target_lat = lat
+    target_lon = lon
+
+    if (target_lat is None or target_lon is None) and farmer_id:
         farmer = db.users.find_one({"_id": ObjectId(farmer_id)})
-        if farmer and "latitude" in farmer and "longitude" in farmer:
-            from services.soil_service import get_soil_properties
-            try:
-                soil_data = get_soil_properties(farmer["latitude"], farmer["longitude"])
-            except Exception as e:
-                print(f"Failed to retrieve SoilGrids properties: {e}")
+        if farmer:
+            if "latitude" in farmer and "longitude" in farmer:
+                target_lat = farmer["latitude"]
+                target_lon = farmer["longitude"]
+            elif "coords" in farmer and isinstance(farmer["coords"], list) and len(farmer["coords"]) == 2:
+                target_lon, target_lat = farmer["coords"]
+            else:
+                loc = db.farmer_locations.find_one({"farmer_id": ObjectId(farmer_id)})
+                if loc and "location" in loc and "coordinates" in loc["location"]:
+                    target_lon, target_lat = loc["location"]["coordinates"]
+
+    if target_lat is not None and target_lon is not None:
+        from services.soil_service import get_soil_properties
+        from services.weather_service import get_weather_forecast
+        try:
+            soil_data = get_soil_properties(target_lat, target_lon)
+        except Exception as e:
+            print(f"Failed to retrieve SoilGrids properties: {e}")
+
+        try:
+            fc_res = get_weather_forecast(target_lat, target_lon)
+            if isinstance(fc_res, dict) and "forecast" in fc_res:
+                forecast_list = fc_res["forecast"]
+        except Exception as e:
+            print(f"Failed to retrieve weather forecast: {e}")
 
     # 3. Determine season match
     current_month = datetime.now().month
@@ -35,12 +58,13 @@ def generate_crop_recommendation(farmer_id, crop_id, weather_data):
     crop_season = crop_reqs.get("season", "Kharif")
     season_match = 1 if current_season.lower() in crop_season.lower() else 0
 
-    # 4. Call AI Sowing Model (with weather + soil)
+    # 4. Call AI Sowing Model (with weather + soil + 5-day forecast)
     prediction = predict_suitability(
         weather_data=weather_data,
         crop_reqs=crop_reqs,
         season_match=season_match,
-        soil_data=soil_data
+        soil_data=soil_data,
+        forecast_list=forecast_list
     )
     
     # 5. Form recommendation record

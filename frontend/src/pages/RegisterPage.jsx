@@ -2,9 +2,15 @@ import React, { useState, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
 import axios from "axios";
-import { Sprout, Phone, Lock, User, MapPin, Compass, Info, ArrowLeft, Languages } from "lucide-react";
+import { Sprout, Phone, Lock, User, MapPin, Compass, Info, ArrowLeft, Languages, Search } from "lucide-react";
 
-const CROPS_OPTIONS = ["Rice", "Wheat", "Soybean", "Cotton", "Maize", "Millets", "Groundnut"];
+const CROPS_OPTIONS = [
+  "Rice", "Wheat", "Soybean", "Cotton", "Maize", "Millets", "Groundnut",
+  "Bajra (Pearl Millet)", "Jowar (Sorghum)", "Ragi (Finger Millet)", "Barley",
+  "Tur / Arhar (Pigeon Pea)", "Chana (Chickpea)", "Moong (Green Gram)", "Urad (Black Gram)", "Masoor (Lentil)",
+  "Mustard (Sarson)", "Sunflower", "Sesame (Til)", "Sugarcane", "Jute",
+  "Onion", "Tomato", "Potato", "Chilli", "Turmeric (Haldi)", "Banana"
+];
 
 export const RegisterPage = () => {
   const { API_URL } = useContext(AppContext);
@@ -24,6 +30,7 @@ export const RegisterPage = () => {
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
   const [selectedCrops, setSelectedCrops] = useState([]);
+  const [cropSearchQuery, setCropSearchQuery] = useState("");
   
   const [detecting, setDetecting] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -387,29 +394,77 @@ export const RegisterPage = () => {
 
             <hr className="border-slate-100 dark:border-slate-800" />
 
-            {/* Preferred Crops */}
-            <div>
-              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">
-                Preferred Crops you cultivate:
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {CROPS_OPTIONS.map((crop) => (
+            {/* Preferred Crops Selection with Search & Fixed Scrollable Container */}
+            <div className="space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <label className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                  Preferred Crops you cultivate:
+                  <span className="px-2.5 py-0.5 rounded-full text-2xs bg-primary-500/10 text-primary-600 dark:text-primary-400 font-extrabold">
+                    {selectedCrops.length} Selected
+                  </span>
+                </label>
+                {selectedCrops.length > 0 && (
                   <button
-                    key={crop}
                     type="button"
-                    onClick={() => handleCropCheckbox(crop)}
-                    className={`px-4 py-2.5 rounded-2xl border text-sm font-bold transition-all text-left flex items-center justify-between ${
-                      selectedCrops.includes(crop)
-                        ? "border-primary-500 bg-primary-500/10 text-primary-700 dark:text-primary-400"
-                        : "border-slate-200 dark:border-slate-800 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800"
-                    }`}
+                    onClick={() => setSelectedCrops([])}
+                    className="text-2xs font-extrabold text-rose-500 hover:underline self-end sm:self-auto"
                   >
-                    {crop}
-                    {selectedCrops.includes(crop) && (
-                      <span className="w-2.5 h-2.5 rounded-full bg-primary-500"></span>
-                    )}
+                    Clear Selection
                   </button>
-                ))}
+                )}
+              </div>
+
+              {/* Search input */}
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <Search className="w-4 h-4" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search 27+ Indian crops (e.g. Bajra, Turmeric, Tomato)..."
+                  value={cropSearchQuery}
+                  onChange={(e) => setCropSearchQuery(e.target.value)}
+                  className="block w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-800 dark:text-white"
+                />
+              </div>
+
+              {/* Vertically scrollable crop list container with fixed max height */}
+              <div className="max-h-56 overflow-y-auto p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 space-y-2 scrollbar-thin">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {CROPS_OPTIONS.filter((c) =>
+                    c.toLowerCase().includes(cropSearchQuery.toLowerCase())
+                  ).map((crop) => {
+                    const isSelected = selectedCrops.includes(crop);
+                    return (
+                      <button
+                        key={crop}
+                        type="button"
+                        onClick={() => handleCropCheckbox(crop)}
+                        className={`px-3 py-2 rounded-xl border text-xs font-bold transition-all text-left flex items-center justify-between ${
+                          isSelected
+                            ? "border-primary-500 bg-primary-500/15 text-primary-700 dark:text-primary-300 shadow-sm"
+                            : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:border-slate-300"
+                        }`}
+                      >
+                        <span className="truncate">{crop}</span>
+                        <span className={`w-3.5 h-3.5 rounded-md border flex items-center justify-center shrink-0 ml-1.5 ${
+                          isSelected
+                            ? "bg-primary-500 border-primary-500 text-white"
+                            : "border-slate-300 dark:border-slate-600"
+                        }`}>
+                          {isSelected && <span className="text-[9px]">✓</span>}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {CROPS_OPTIONS.filter((c) =>
+                  c.toLowerCase().includes(cropSearchQuery.toLowerCase())
+                ).length === 0 && (
+                  <p className="text-xs text-slate-400 text-center py-4">
+                    No matching crops found for "{cropSearchQuery}"
+                  </p>
+                )}
               </div>
             </div>
 

@@ -99,10 +99,22 @@ class MockCollection:
                         match = False
                         break
                     for op, val in v.items():
-                        if op == "$gte" and not (doc_val >= val):
+                        if op == "$options":
+                            continue
+                        elif op == "$gte" and not (doc_val >= val):
                             match = False
                         elif op == "$lte" and not (doc_val <= val):
                             match = False
+                        elif op == "$regex":
+                            import re
+                            opts = v.get("$options", "")
+                            flags = re.IGNORECASE if "i" in opts else 0
+                            try:
+                                pattern = re.compile(val, flags)
+                                if not pattern.search(str(doc_val)):
+                                    match = False
+                            except Exception:
+                                match = False
                 elif str(doc.get(k)) != str(v) and doc.get(k) != v:
                     match = False
                     break
@@ -140,6 +152,43 @@ class MockCollection:
             if item["_id"] == doc["_id"]:
                 self.data[i] = doc
                 break
+
+    def update_many(self, query, update, upsert=False):
+        matched_count = 0
+        for i, item in enumerate(self.data):
+            match = True
+            for k, v in query.items():
+                if isinstance(v, dict):
+                    if "$exists" in v:
+                        exists_expected = v["$exists"]
+                        field_exists = k in item
+                        if field_exists != exists_expected:
+                            match = match and False
+                    else:
+                        doc_val = item.get(k)
+                        if doc_val is None:
+                            match = False
+                            break
+                        for op, val in v.items():
+                            if op == "$gte" and not (doc_val >= val):
+                                match = False
+                            elif op == "$lte" and not (doc_val <= val):
+                                match = False
+                elif str(item.get(k)) != str(v) and item.get(k) != v:
+                    match = False
+                    break
+            
+            if match:
+                matched_count += 1
+                if "$set" in update:
+                    for set_k, set_v in update["$set"].items():
+                        item[set_k] = set_v
+                self.data[i] = item
+                
+        class UpdateResult:
+            def __init__(self, modified_count):
+                self.modified_count = modified_count
+        return UpdateResult(matched_count)
 
     def delete_one(self, query):
         doc = self.find_one(query)
@@ -183,6 +232,9 @@ class Database:
             self.sms_logs = MockCollection("SMSLogs")
             self.farmer_locations = MockCollection("FarmerLocations")
             self.notifications = MockCollection("Notifications")
+            self.soil_cache = MockCollection("SoilCache")
+            self.automation_status = MockCollection("AutomationStatus")
+            self.sms_queue = MockCollection("SMSQueue")
         else:
             self.users = self.db.Users
             self.admins = self.db.Admins
@@ -194,11 +246,15 @@ class Database:
             self.sms_logs = self.db.SMSLogs
             self.farmer_locations = self.db.FarmerLocations
             self.notifications = self.db.Notifications
+            self.soil_cache = self.db.SoilCache
+            self.automation_status = self.db.AutomationStatus
+            self.sms_queue = self.db.SMSQueue
 
         logger.info("Collections initialized")
 
         self.setup_indexes()
         self.seed_database()
+        self.run_migrations()
 
     def setup_indexes(self):
         if self.mock_mode:
@@ -363,6 +419,8 @@ class Database:
             for f_doc in dummy_farmers:
                 if self.users.count_documents({"mobile": f_doc["mobile"]}) == 0:
                     coords_val = f_doc.pop("coords")
+                    # Alternate verified status dynamically for demo purposes
+                    f_doc["verified_for_sms"] = f_doc.get("verified_for_sms", False)
                     inserted = self.users.insert_one(f_doc)
                     f_id = inserted.inserted_id
                     
@@ -380,65 +438,63 @@ class Database:
                     logger.info(f"Seeded dummy farmer {f_doc['name']} at coordinates {coords_val}")
 
         default_crops = [
-            {"name": "Rice", "category": "Kharif", "description": "Staple food crop needing warm conditions and standing water."},
-            {"name": "Wheat", "category": "Rabi", "description": "Cool-season crop requiring moderate moisture."},
-            {"name": "Soybean", "category": "Kharif", "description": "Protein-rich legume crop."},
-            {"name": "Cotton", "category": "Kharif", "description": "Cash crop requiring high temperature and moderate rainfall."},
-            {"name": "Maize", "category": "Kharif/Rabi", "description": "Versatile cereal crop."},
-            {"name": "Millets", "category": "Kharif", "description": "Drought-resistant crop, highly suitable for drylands."},
-            {"name": "Groundnut", "category": "Kharif", "description": "Oilseed crop requiring sandy loam soils."}
+            {"name": "Rice", "category": "Cereal", "description": "Staple food crop needing warm conditions and standing water."},
+            {"name": "Wheat", "category": "Cereal", "description": "Cool-season crop requiring moderate moisture."},
+            {"name": "Soybean", "category": "Oilseed", "description": "Protein-rich legume crop."},
+            {"name": "Cotton", "category": "Commercial", "description": "Cash crop requiring high temperature and moderate rainfall."},
+            {"name": "Maize", "category": "Cereal", "description": "Versatile cereal crop for grain and fodder."},
+            {"name": "Millets", "category": "Cereal", "description": "Drought-resistant crop, highly suitable for drylands."},
+            {"name": "Groundnut", "category": "Oilseed", "description": "Oilseed crop requiring sandy loam soils."},
+            {"name": "Bajra (Pearl Millet)", "category": "Cereal", "description": "Resilient drought-tolerant millet."},
+            {"name": "Jowar (Sorghum)", "category": "Cereal", "description": "Important dryland cereal and fodder crop."},
+            {"name": "Ragi (Finger Millet)", "category": "Cereal", "description": "Nutri-cereal rich in calcium and iron."},
+            {"name": "Barley", "category": "Cereal", "description": "Rabi cereal crop suited for cooler climates."},
+            {"name": "Tur / Arhar (Pigeon Pea)", "category": "Pulses", "description": "Major Kharif pulse providing protein."},
+            {"name": "Chana (Chickpea)", "category": "Pulses", "description": "Leading Rabi pulse crop."},
+            {"name": "Moong (Green Gram)", "category": "Pulses", "description": "Short-duration pulse crop."},
+            {"name": "Urad (Black Gram)", "category": "Pulses", "description": "Important Kharif pulse."},
+            {"name": "Masoor (Lentil)", "category": "Pulses", "description": "Rabi pulse requiring cool climate."},
+            {"name": "Mustard (Sarson)", "category": "Oilseed", "description": "Major Rabi oilseed crop."},
+            {"name": "Sunflower", "category": "Oilseed", "description": "Oilseed crop suited for varied seasons."},
+            {"name": "Sesame (Til)", "category": "Oilseed", "description": "Traditional Kharif oilseed."},
+            {"name": "Sugarcane", "category": "Commercial", "description": "Long-duration cash crop requiring heavy water."},
+            {"name": "Jute", "category": "Commercial", "description": "Fiber cash crop needing warm and humid climate."},
+            {"name": "Onion", "category": "Vegetable", "description": "Essential vegetable crop."},
+            {"name": "Tomato", "category": "Vegetable", "description": "High-value horticultural vegetable."},
+            {"name": "Potato", "category": "Vegetable", "description": "Starchy tuber vegetable crop."},
+            {"name": "Chilli", "category": "Vegetable", "description": "Spice and commercial vegetable crop."},
+            {"name": "Turmeric (Haldi)", "category": "Commercial", "description": "Rhizomatous spice cash crop."},
+            {"name": "Banana", "category": "Fruit", "description": "Perennial fruit crop needing warm humid climate."}
         ]
 
         default_requirements = {
-            "Rice": {
-                "ideal_temp_min": 20.0, "ideal_temp_max": 35.0,
-                "ideal_rainfall_min": 100.0, "ideal_rainfall_max": 200.0,
-                "ideal_humidity_min": 60.0, "ideal_humidity_max": 90.0,
-                "ideal_soil_moisture_min": 0.4, "ideal_soil_moisture_max": 0.8,
-                "season": "Kharif"
-            },
-            "Wheat": {
-                "ideal_temp_min": 10.0, "ideal_temp_max": 25.0,
-                "ideal_rainfall_min": 30.0, "ideal_rainfall_max": 80.0,
-                "ideal_humidity_min": 40.0, "ideal_humidity_max": 70.0,
-                "ideal_soil_moisture_min": 0.25, "ideal_soil_moisture_max": 0.55,
-                "season": "Rabi"
-            },
-            "Soybean": {
-                "ideal_temp_min": 18.0, "ideal_temp_max": 32.0,
-                "ideal_rainfall_min": 50.0, "ideal_rainfall_max": 100.0,
-                "ideal_humidity_min": 50.0, "ideal_humidity_max": 80.0,
-                "ideal_soil_moisture_min": 0.3, "ideal_soil_moisture_max": 0.6,
-                "season": "Kharif"
-            },
-            "Cotton": {
-                "ideal_temp_min": 21.0, "ideal_temp_max": 35.0,
-                "ideal_rainfall_min": 40.0, "ideal_rainfall_max": 90.0,
-                "ideal_humidity_min": 50.0, "ideal_humidity_max": 80.0,
-                "ideal_soil_moisture_min": 0.2, "ideal_soil_moisture_max": 0.5,
-                "season": "Kharif"
-            },
-            "Maize": {
-                "ideal_temp_min": 18.0, "ideal_temp_max": 30.0,
-                "ideal_rainfall_min": 50.0, "ideal_rainfall_max": 110.0,
-                "ideal_humidity_min": 45.0, "ideal_humidity_max": 75.0,
-                "ideal_soil_moisture_min": 0.3, "ideal_soil_moisture_max": 0.6,
-                "season": "Kharif"
-            },
-            "Millets": {
-                "ideal_temp_min": 15.0, "ideal_temp_max": 38.0,
-                "ideal_rainfall_min": 20.0, "ideal_rainfall_max": 60.0,
-                "ideal_humidity_min": 30.0, "ideal_humidity_max": 60.0,
-                "ideal_soil_moisture_min": 0.1, "ideal_soil_moisture_max": 0.4,
-                "season": "Kharif"
-            },
-            "Groundnut": {
-                "ideal_temp_min": 20.0, "ideal_temp_max": 30.0,
-                "ideal_rainfall_min": 40.0, "ideal_rainfall_max": 80.0,
-                "ideal_humidity_min": 45.0, "ideal_humidity_max": 75.0,
-                "ideal_soil_moisture_min": 0.25, "ideal_soil_moisture_max": 0.5,
-                "season": "Kharif"
-            }
+            "Rice": {"ideal_temp_min": 20.0, "ideal_temp_max": 35.0, "ideal_rainfall_min": 100.0, "ideal_rainfall_max": 200.0, "ideal_humidity_min": 60.0, "ideal_humidity_max": 90.0, "ideal_soil_moisture_min": 0.4, "ideal_soil_moisture_max": 0.8, "season": "Kharif"},
+            "Wheat": {"ideal_temp_min": 10.0, "ideal_temp_max": 25.0, "ideal_rainfall_min": 30.0, "ideal_rainfall_max": 80.0, "ideal_humidity_min": 40.0, "ideal_humidity_max": 70.0, "ideal_soil_moisture_min": 0.25, "ideal_soil_moisture_max": 0.55, "season": "Rabi"},
+            "Soybean": {"ideal_temp_min": 18.0, "ideal_temp_max": 32.0, "ideal_rainfall_min": 50.0, "ideal_rainfall_max": 100.0, "ideal_humidity_min": 50.0, "ideal_humidity_max": 80.0, "ideal_soil_moisture_min": 0.3, "ideal_soil_moisture_max": 0.6, "season": "Kharif"},
+            "Cotton": {"ideal_temp_min": 21.0, "ideal_temp_max": 35.0, "ideal_rainfall_min": 40.0, "ideal_rainfall_max": 90.0, "ideal_humidity_min": 50.0, "ideal_humidity_max": 80.0, "ideal_soil_moisture_min": 0.2, "ideal_soil_moisture_max": 0.5, "season": "Kharif"},
+            "Maize": {"ideal_temp_min": 18.0, "ideal_temp_max": 30.0, "ideal_rainfall_min": 50.0, "ideal_rainfall_max": 110.0, "ideal_humidity_min": 45.0, "ideal_humidity_max": 75.0, "ideal_soil_moisture_min": 0.3, "ideal_soil_moisture_max": 0.6, "season": "Kharif"},
+            "Millets": {"ideal_temp_min": 15.0, "ideal_temp_max": 38.0, "ideal_rainfall_min": 20.0, "ideal_rainfall_max": 60.0, "ideal_humidity_min": 30.0, "ideal_humidity_max": 60.0, "ideal_soil_moisture_min": 0.1, "ideal_soil_moisture_max": 0.4, "season": "Kharif"},
+            "Groundnut": {"ideal_temp_min": 20.0, "ideal_temp_max": 30.0, "ideal_rainfall_min": 40.0, "ideal_rainfall_max": 80.0, "ideal_humidity_min": 45.0, "ideal_humidity_max": 75.0, "ideal_soil_moisture_min": 0.25, "ideal_soil_moisture_max": 0.5, "season": "Kharif"},
+            "Bajra (Pearl Millet)": {"ideal_temp_min": 20.0, "ideal_temp_max": 38.0, "ideal_rainfall_min": 25.0, "ideal_rainfall_max": 65.0, "ideal_humidity_min": 30.0, "ideal_humidity_max": 60.0, "ideal_soil_moisture_min": 0.15, "ideal_soil_moisture_max": 0.45, "season": "Kharif"},
+            "Jowar (Sorghum)": {"ideal_temp_min": 20.0, "ideal_temp_max": 35.0, "ideal_rainfall_min": 30.0, "ideal_rainfall_max": 75.0, "ideal_humidity_min": 35.0, "ideal_humidity_max": 65.0, "ideal_soil_moisture_min": 0.2, "ideal_soil_moisture_max": 0.5, "season": "Kharif"},
+            "Ragi (Finger Millet)": {"ideal_temp_min": 18.0, "ideal_temp_max": 32.0, "ideal_rainfall_min": 35.0, "ideal_rainfall_max": 70.0, "ideal_humidity_min": 40.0, "ideal_humidity_max": 70.0, "ideal_soil_moisture_min": 0.2, "ideal_soil_moisture_max": 0.5, "season": "Kharif"},
+            "Barley": {"ideal_temp_min": 12.0, "ideal_temp_max": 24.0, "ideal_rainfall_min": 25.0, "ideal_rainfall_max": 60.0, "ideal_humidity_min": 35.0, "ideal_humidity_max": 65.0, "ideal_soil_moisture_min": 0.2, "ideal_soil_moisture_max": 0.5, "season": "Rabi"},
+            "Tur / Arhar (Pigeon Pea)": {"ideal_temp_min": 18.0, "ideal_temp_max": 35.0, "ideal_rainfall_min": 40.0, "ideal_rainfall_max": 90.0, "ideal_humidity_min": 45.0, "ideal_humidity_max": 75.0, "ideal_soil_moisture_min": 0.25, "ideal_soil_moisture_max": 0.55, "season": "Kharif"},
+            "Chana (Chickpea)": {"ideal_temp_min": 12.0, "ideal_temp_max": 28.0, "ideal_rainfall_min": 25.0, "ideal_rainfall_max": 60.0, "ideal_humidity_min": 35.0, "ideal_humidity_max": 65.0, "ideal_soil_moisture_min": 0.2, "ideal_soil_moisture_max": 0.5, "season": "Rabi"},
+            "Moong (Green Gram)": {"ideal_temp_min": 20.0, "ideal_temp_max": 35.0, "ideal_rainfall_min": 30.0, "ideal_rainfall_max": 70.0, "ideal_humidity_min": 40.0, "ideal_humidity_max": 70.0, "ideal_soil_moisture_min": 0.2, "ideal_soil_moisture_max": 0.5, "season": "Kharif"},
+            "Urad (Black Gram)": {"ideal_temp_min": 20.0, "ideal_temp_max": 35.0, "ideal_rainfall_min": 35.0, "ideal_rainfall_max": 75.0, "ideal_humidity_min": 45.0, "ideal_humidity_max": 75.0, "ideal_soil_moisture_min": 0.25, "ideal_soil_moisture_max": 0.55, "season": "Kharif"},
+            "Masoor (Lentil)": {"ideal_temp_min": 10.0, "ideal_temp_max": 25.0, "ideal_rainfall_min": 25.0, "ideal_rainfall_max": 55.0, "ideal_humidity_min": 35.0, "ideal_humidity_max": 65.0, "ideal_soil_moisture_min": 0.2, "ideal_soil_moisture_max": 0.45, "season": "Rabi"},
+            "Mustard (Sarson)": {"ideal_temp_min": 10.0, "ideal_temp_max": 25.0, "ideal_rainfall_min": 20.0, "ideal_rainfall_max": 50.0, "ideal_humidity_min": 35.0, "ideal_humidity_max": 65.0, "ideal_soil_moisture_min": 0.2, "ideal_soil_moisture_max": 0.45, "season": "Rabi"},
+            "Sunflower": {"ideal_temp_min": 18.0, "ideal_temp_max": 30.0, "ideal_rainfall_min": 35.0, "ideal_rainfall_max": 75.0, "ideal_humidity_min": 40.0, "ideal_humidity_max": 70.0, "ideal_soil_moisture_min": 0.25, "ideal_soil_moisture_max": 0.5, "season": "Kharif"},
+            "Sesame (Til)": {"ideal_temp_min": 22.0, "ideal_temp_max": 35.0, "ideal_rainfall_min": 25.0, "ideal_rainfall_max": 60.0, "ideal_humidity_min": 40.0, "ideal_humidity_max": 70.0, "ideal_soil_moisture_min": 0.2, "ideal_soil_moisture_max": 0.45, "season": "Kharif"},
+            "Sugarcane": {"ideal_temp_min": 20.0, "ideal_temp_max": 38.0, "ideal_rainfall_min": 80.0, "ideal_rainfall_max": 180.0, "ideal_humidity_min": 55.0, "ideal_humidity_max": 85.0, "ideal_soil_moisture_min": 0.4, "ideal_soil_moisture_max": 0.75, "season": "Kharif"},
+            "Jute": {"ideal_temp_min": 24.0, "ideal_temp_max": 38.0, "ideal_rainfall_min": 100.0, "ideal_rainfall_max": 200.0, "ideal_humidity_min": 65.0, "ideal_humidity_max": 90.0, "ideal_soil_moisture_min": 0.45, "ideal_soil_moisture_max": 0.8, "season": "Kharif"},
+            "Onion": {"ideal_temp_min": 12.0, "ideal_temp_max": 30.0, "ideal_rainfall_min": 30.0, "ideal_rainfall_max": 70.0, "ideal_humidity_min": 40.0, "ideal_humidity_max": 70.0, "ideal_soil_moisture_min": 0.25, "ideal_soil_moisture_max": 0.55, "season": "Rabi"},
+            "Tomato": {"ideal_temp_min": 15.0, "ideal_temp_max": 32.0, "ideal_rainfall_min": 35.0, "ideal_rainfall_max": 80.0, "ideal_humidity_min": 45.0, "ideal_humidity_max": 75.0, "ideal_soil_moisture_min": 0.3, "ideal_soil_moisture_max": 0.6, "season": "Kharif"},
+            "Potato": {"ideal_temp_min": 10.0, "ideal_temp_max": 24.0, "ideal_rainfall_min": 25.0, "ideal_rainfall_max": 60.0, "ideal_humidity_min": 40.0, "ideal_humidity_max": 70.0, "ideal_soil_moisture_min": 0.25, "ideal_soil_moisture_max": 0.55, "season": "Rabi"},
+            "Chilli": {"ideal_temp_min": 18.0, "ideal_temp_max": 35.0, "ideal_rainfall_min": 30.0, "ideal_rainfall_max": 75.0, "ideal_humidity_min": 40.0, "ideal_humidity_max": 70.0, "ideal_soil_moisture_min": 0.25, "ideal_soil_moisture_max": 0.55, "season": "Kharif"},
+            "Turmeric (Haldi)": {"ideal_temp_min": 20.0, "ideal_temp_max": 35.0, "ideal_rainfall_min": 70.0, "ideal_rainfall_max": 150.0, "ideal_humidity_min": 55.0, "ideal_humidity_max": 85.0, "ideal_soil_moisture_min": 0.35, "ideal_soil_moisture_max": 0.7, "season": "Kharif"},
+            "Banana": {"ideal_temp_min": 15.0, "ideal_temp_max": 38.0, "ideal_rainfall_min": 80.0, "ideal_rainfall_max": 180.0, "ideal_humidity_min": 60.0, "ideal_humidity_max": 90.0, "ideal_soil_moisture_min": 0.4, "ideal_soil_moisture_max": 0.75, "season": "Kharif"}
         }
 
         for crop in default_crops:
@@ -452,6 +508,18 @@ class Database:
                 logger.info(f"Seeded crop {crop['name']} and its requirements.")
         
         logger.info("Seed completed")
+
+    def run_migrations(self):
+        try:
+            query = {"role": "farmer", "verified_for_sms": {"$exists": False}}
+            update = {"$set": {"verified_for_sms": False}}
+            res = self.users.update_many(query, update)
+            modified = res.modified_count if res else 0
+            msg = f"[MIGRATION] Updated {modified} farmer document(s) with 'verified_for_sms': False."
+            print(msg, flush=True)
+            logger.info(msg)
+        except Exception as e:
+            logger.error(f"[MIGRATION] Schema migration failed: {e}")
 
 # Instantiate database singleton
 db = Database()

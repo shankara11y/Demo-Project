@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { AppContext } from "../../context/AppContext";
+import LanguageSelector from "../../components/LanguageSelector";
 import axios from "axios";
 import { 
   Sprout, LogOut, Sun, Moon, MapPin, CloudRain, Thermometer, Droplets, 
@@ -47,6 +49,7 @@ ChartJS.register(
 
 export const FarmerDashboard = () => {
   const { token, logout, API_URL, translate, darkMode, toggleDarkMode } = useContext(AppContext);
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const [data, setData] = useState(null);
@@ -69,7 +72,7 @@ export const FarmerDashboard = () => {
         setData(response.data);
       } catch (err) {
         console.error(err);
-        setError(err.response?.data?.error || "Failed to load dashboard parameters.");
+        setError(err.response?.data?.error || t("error_loading"));
       } finally {
         setLoading(false);
       }
@@ -86,7 +89,7 @@ export const FarmerDashboard = () => {
           <Sprout className="w-6 h-6 text-primary-500 absolute animate-pulse" />
         </div>
         <p className="mt-4 text-sm font-bold text-slate-500 dark:text-slate-400">
-          {translate("loading")}
+          {t("loading")}
         </p>
       </div>
     );
@@ -103,7 +106,7 @@ export const FarmerDashboard = () => {
             onClick={() => window.location.reload()}
             className="px-6 py-2 rounded-full bg-rose-600 text-white text-sm font-bold"
           >
-            Retry Loading
+            {t("retry_loading")}
           </button>
         </div>
       </div>
@@ -193,11 +196,13 @@ export const FarmerDashboard = () => {
               <Sprout className="w-5 h-5" />
             </div>
             <span className="font-extrabold text-lg bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent">
-              AgriCast
+              {t("app_title")}
             </span>
           </div>
 
           <div className="flex items-center gap-3">
+            <LanguageSelector />
+
             <button
               onClick={toggleDarkMode}
               className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800"
@@ -208,7 +213,7 @@ export const FarmerDashboard = () => {
             <Link
               to="/farmer/profile"
               className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-700"
-              title="Profile Settings"
+              title={t("profile_settings")}
             >
               <Settings className="w-5 h-5" />
             </Link>
@@ -217,20 +222,18 @@ export const FarmerDashboard = () => {
               onClick={logout}
               className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 rounded-full hover:bg-rose-500 hover:text-white transition-all"
             >
-              <LogOut className="w-4 h-4" /> {translate("logout")}
+              <LogOut className="w-4 h-4" /> {t("logout")}
             </button>
           </div>
         </div>
-      </nav>
-
-      {/* Main Container */}
+      </nav>      {/* Main Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         
         {/* Welcome Banner */}
         <div className="p-6 rounded-3xl bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-xl shadow-primary-500/15 flex flex-col md:flex-row md:items-center justify-between gap-4 animate-slide-up">
           <div className="space-y-1">
             <h1 className="text-2xl sm:text-3xl font-extrabold flex items-center gap-2">
-              Namaskar, {farmer_name}!
+              {t("welcome_greeting")}, {farmer_name}!
             </h1>
             <p className="text-sm text-primary-100 flex items-center gap-1">
               <MapPin className="w-4 h-4" /> {village}, {district} | GPS: {lat.toFixed(4)}, {lon.toFixed(4)}
@@ -240,7 +243,7 @@ export const FarmerDashboard = () => {
             to="/farmer/recommendations"
             className="self-start md:self-center px-6 py-3 rounded-full bg-white text-primary-700 hover:bg-slate-100 font-bold text-sm shadow-md transition-all transform hover:scale-105 flex items-center gap-1.5"
           >
-            Sowing Suitability Check <ChevronRight className="w-4 h-4" />
+            {t("sowing_check_btn")} <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
 
@@ -249,7 +252,7 @@ export const FarmerDashboard = () => {
           <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-400 flex items-start gap-3">
             <TriangleAlert className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <h4 className="font-extrabold text-sm">Active Weather Warning</h4>
+              <h4 className="font-extrabold text-sm">{t("active_warning")}</h4>
               <p className="text-xs leading-relaxed">{alerts[0].message}</p>
             </div>
           </div>
@@ -262,7 +265,7 @@ export const FarmerDashboard = () => {
           <div className="lg:col-span-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl shadow-md flex flex-col justify-between">
             <div className="flex justify-between items-start">
               <div>
-                <h3 className="font-extrabold text-slate-500 text-sm uppercase tracking-wider">{translate("current_weather")}</h3>
+                <h3 className="font-extrabold text-slate-500 text-sm uppercase tracking-wider">{t("current_weather")}</h3>
                 <p className="text-3xl font-black text-slate-900 dark:text-white mt-2">{current_weather.temp}°C</p>
               </div>
               <img 
@@ -278,28 +281,28 @@ export const FarmerDashboard = () => {
               <div className="flex items-center gap-2.5">
                 <div className="p-2 bg-sky-500/10 rounded-xl text-sky-500"><Droplets className="w-5 h-5" /></div>
                 <div>
-                  <p className="text-xs text-slate-400 font-bold">{translate("humidity")}</p>
+                  <p className="text-xs text-slate-400 font-bold">{t("humidity")}</p>
                   <p className="text-sm font-extrabold">{current_weather.humidity}%</p>
                 </div>
               </div>
               <div className="flex items-center gap-2.5">
                 <div className="p-2 bg-blue-500/10 rounded-xl text-blue-500"><CloudRain className="w-5 h-5" /></div>
                 <div>
-                  <p className="text-xs text-slate-400 font-bold">{translate("rain")}</p>
+                  <p className="text-xs text-slate-400 font-bold">{t("rain")}</p>
                   <p className="text-sm font-extrabold">{current_weather.rainfall} mm</p>
                 </div>
               </div>
               <div className="flex items-center gap-2.5">
                 <div className="p-2 bg-amber-500/10 rounded-xl text-amber-500"><Wind className="w-5 h-5" /></div>
                 <div>
-                  <p className="text-xs text-slate-400 font-bold">{translate("wind")}</p>
+                  <p className="text-xs text-slate-400 font-bold">{t("wind")}</p>
                   <p className="text-sm font-extrabold">{current_weather.wind_speed} km/h</p>
                 </div>
               </div>
               <div className="flex items-center gap-2.5">
                 <div className="p-2 bg-amber-500/10 rounded-xl text-amber-500"><Sun className="w-5 h-5" /></div>
                 <div>
-                  <p className="text-xs text-slate-400 font-bold">UV Index</p>
+                  <p className="text-xs text-slate-400 font-bold">{t("uv_index")}</p>
                   <p className="text-sm font-extrabold">{current_weather.uv_index}</p>
                 </div>
               </div>
@@ -308,13 +311,13 @@ export const FarmerDashboard = () => {
 
           {/* Sowing Suitability Summaries */}
           <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl shadow-md space-y-4">
-            <h3 className="font-extrabold text-slate-500 text-sm uppercase tracking-wider">Your Crop Advisories</h3>
+            <h3 className="font-extrabold text-slate-500 text-sm uppercase tracking-wider">{t("crop_advisories")}</h3>
             
             {crop_advisories.length === 0 ? (
               <div className="py-10 text-center">
                 <Sprout className="w-12 h-12 text-slate-300 mx-auto mb-2" />
-                <p className="text-slate-400 text-sm">No crops registered. Click below to add crop types.</p>
-                <Link to="/farmer/profile" className="text-sm font-bold text-primary-500 hover:underline mt-2 inline-block">Update Profile Crops</Link>
+                <p className="text-slate-400 text-sm">{t("no_crops_registered")}</p>
+                <Link to="/farmer/profile" className="text-sm font-bold text-primary-500 hover:underline mt-2 inline-block">{t("update_profile_crops")}</Link>
               </div>
             ) : (
               <div className="space-y-4 max-h-[250px] overflow-y-auto pr-2">
@@ -335,7 +338,7 @@ export const FarmerDashboard = () => {
 
                     <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-start">
                       <div className="text-right sm:text-left">
-                        <p className="text-xs text-slate-400 font-bold">{translate("suitability")}</p>
+                        <p className="text-xs text-slate-400 font-bold">{t("suitability")}</p>
                         <span className={`inline-block text-xs font-black px-3 py-1 rounded-full mt-1 ${
                           crop.suitability === "Suitable" 
                             ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" 
@@ -348,7 +351,7 @@ export const FarmerDashboard = () => {
                       </div>
                       
                       <div className="text-right">
-                        <p className="text-xs text-slate-400 font-bold">Match Score</p>
+                        <p className="text-xs text-slate-400 font-bold">{t("match_score")}</p>
                         <p className="text-sm font-black text-slate-800 dark:text-slate-100">{crop.confidence}%</p>
                       </div>
                       
@@ -370,7 +373,7 @@ export const FarmerDashboard = () => {
         {/* 5-Day Horizontal Forecast Cards */}
         <div className="space-y-3">
           <h3 className="font-extrabold text-slate-500 text-sm uppercase tracking-wider flex items-center gap-1.5">
-            <Calendar className="w-5 h-5" /> {translate("forecast_5day")}
+            <Calendar className="w-5 h-5" /> {t("forecast_5day")}
           </h3>
           <div className="flex gap-4 overflow-x-auto pb-4 pt-1 snap-x scrollbar-thin">
             {forecast.map((f, index) => (
@@ -406,7 +409,7 @@ export const FarmerDashboard = () => {
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl shadow-md space-y-4">
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
               <h3 className="font-extrabold text-slate-500 text-sm uppercase tracking-wider flex items-center gap-1.5">
-                <BarChart3 className="w-5 h-5" /> Weather Trend Analysis
+                <BarChart3 className="w-5 h-5" /> {t("weather_trend_analysis")}
               </h3>
               
               {/* Tab Selector */}
@@ -419,7 +422,7 @@ export const FarmerDashboard = () => {
                       : "text-slate-400"
                   }`}
                 >
-                  Temp
+                  {t("temp_tab")}
                 </button>
                 <button
                   onClick={() => setActiveChartTab("rain")}
@@ -429,7 +432,7 @@ export const FarmerDashboard = () => {
                       : "text-slate-400"
                   }`}
                 >
-                  Rain
+                  {t("rain_tab")}
                 </button>
                 <button
                   onClick={() => setActiveChartTab("humidity")}
@@ -439,7 +442,7 @@ export const FarmerDashboard = () => {
                       : "text-slate-400"
                   }`}
                 >
-                  Humidity
+                  {t("humidity_tab")}
                 </button>
               </div>
             </div>
@@ -471,7 +474,7 @@ export const FarmerDashboard = () => {
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl shadow-md space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="font-extrabold text-slate-500 text-sm uppercase tracking-wider flex items-center gap-1.5">
-                <MapPin className="w-5 h-5" /> Your Geocoded Farm Area
+                <MapPin className="w-5 h-5" /> {t("geocoded_farm_area")}
               </h3>
               
               <button
@@ -482,7 +485,7 @@ export const FarmerDashboard = () => {
                     : "border-slate-200 dark:border-slate-800 text-slate-400"
                 }`}
               >
-                Rain Radar Overlay
+                {t("rain_radar_overlay")}
               </button>
             </div>
 
@@ -498,7 +501,7 @@ export const FarmerDashboard = () => {
                   <Popup>
                     <div className="text-center font-sans">
                       <h4 className="font-extrabold text-sm">{farmer_name}'s Farm</h4>
-                      <p className="text-xs text-slate-500 mt-1">Village: {village}</p>
+                      <p className="text-xs text-slate-500 mt-1">{t("village")}: {village}</p>
                     </div>
                   </Popup>
                 </Marker>

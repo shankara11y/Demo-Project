@@ -65,13 +65,32 @@ def trigger_alert():
         
     farmers = list(db.users.find(query))
     if not farmers:
-        return jsonify({"message": "No farmers found matching the geographic filters. 0 alerts dispatched."}), 200
+        return jsonify({
+            "message": "No farmers found matching the geographic filters. 0 alerts dispatched.",
+            "recipients_count": 0,
+            "success": 0,
+            "failed": 0,
+            "skipped_unverified": 0
+        }), 200
 
-    sent_count = 0
+    print("=== SMS BROADCAST SELECTEE LIST ===", flush=True)
+    for f in farmers:
+        selected = f.get("verified_for_sms", False)
+        print(f"Farmer Name: {f.get('name')} | Mobile Number: {f.get('mobile')} | Village: {f.get('village')} | verified_for_sms: {selected} | Status: {'SELECTED' if selected else 'SKIPPED'}", flush=True)
+    print("====================================", flush=True)
+
+    success_count = 0
+    failed_count = 0
+    skipped_unverified = 0
+    
     for farmer in farmers:
         farmer_id = farmer["_id"]
         mobile = farmer["mobile"]
         
+        if not farmer.get("verified_for_sms", False):
+            skipped_unverified += 1
+            continue
+
         # Save alert log for individual farmer dashboard
         db.alerts.insert_one({
             "farmer_id": farmer_id,
@@ -90,10 +109,23 @@ def trigger_alert():
         })
         
         # Send SMS
-        send_sms(mobile, f"AgriCast Alert: {message}")
-        sent_count += 1
+        res = send_sms(
+            mobile=mobile,
+            message=f"AgriCast Alert: {message}",
+            farmer_id=farmer_id,
+            farmer_name=farmer.get("name"),
+            village=farmer.get("village"),
+            district=farmer.get("district")
+        )
+        if res["success"]:
+            success_count += 1
+        else:
+            failed_count += 1
 
     return jsonify({
-        "message": f"Alert broadcast dispatched successfully to {sent_count} farmer(s).",
-        "recipients_count": sent_count
+        "message": f"Alert broadcast dispatched successfully. Success: {success_count}, Failed: {failed_count}, Skipped: {skipped_unverified} unverified.",
+        "recipients_count": success_count,
+        "success": success_count,
+        "failed": failed_count,
+        "skipped_unverified": skipped_unverified
     }), 201

@@ -5,7 +5,7 @@ export const AppContext = createContext();
 const DICTIONARY = {
   en: {
     title: "AgriCast Sowing Advisory System",
-    hero_title: "Hyperlocal Sowing Decisions Guided by AI",
+    hero_title: "Smart Weather & Crop Advisory Platform for Farmers",
     hero_subtitle: "Empowering Indian farmers with village-level weather insights and automated sowing recommendation alerts.",
     login: "Login",
     register: "Register",
@@ -155,13 +155,16 @@ const DICTIONARY = {
   }
 };
 
+import i18n from "../i18n";
+import axios from "axios";
+
 export const AppProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
   const [user, setUser] = useState(JSON.parse(localStorage.getItem("user")) || null);
-  const [language, setLanguage] = useState(localStorage.getItem("language") || "en");
+  const [language, setLanguage] = useState(localStorage.getItem("agricast_lang") || localStorage.getItem("language") || "en");
   const [darkMode, setDarkMode] = useState(localStorage.getItem("darkMode") === "true");
 
-  const API_URL = "http://localhost:5001";
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
 
   useEffect(() => {
     if (token) {
@@ -181,6 +184,10 @@ export const AppProvider = ({ children }) => {
 
   useEffect(() => {
     localStorage.setItem("language", language);
+    localStorage.setItem("agricast_lang", language);
+    if (i18n.language !== language) {
+      i18n.changeLanguage(language);
+    }
   }, [language]);
 
   useEffect(() => {
@@ -192,9 +199,36 @@ export const AppProvider = ({ children }) => {
     }
   }, [darkMode]);
 
+  const changeLanguage = async (newLang) => {
+    setLanguage(newLang);
+    localStorage.setItem("agricast_lang", newLang);
+    localStorage.setItem("language", newLang);
+    i18n.changeLanguage(newLang);
+
+    if (token && user?.role === "farmer") {
+      try {
+        await axios.put(
+          `${API_URL}/profile`,
+          { preferred_language: newLang },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (user) {
+          const updatedUser = { ...user, preferred_language: newLang };
+          setUser(updatedUser);
+          localStorage.setItem("user", JSON.stringify(updatedUser));
+        }
+      } catch (err) {
+        console.error("Failed to sync preferred language to server:", err);
+      }
+    }
+  };
+
   const login = (jwtToken, userData) => {
     setToken(jwtToken);
     setUser(userData);
+    if (userData?.preferred_language) {
+      changeLanguage(userData.preferred_language);
+    }
   };
 
   const logout = () => {
@@ -205,6 +239,9 @@ export const AppProvider = ({ children }) => {
   };
 
   const translate = (key) => {
+    if (i18n.exists(key)) {
+      return i18n.t(key);
+    }
     return DICTIONARY[language]?.[key] || DICTIONARY["en"]?.[key] || key;
   };
 
@@ -218,7 +255,8 @@ export const AppProvider = ({ children }) => {
         token,
         user,
         language,
-        setLanguage,
+        setLanguage: changeLanguage,
+        changeLanguage,
         darkMode,
         toggleDarkMode,
         login,

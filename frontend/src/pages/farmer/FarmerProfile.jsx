@@ -1,13 +1,21 @@
 import React, { useState, useEffect, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { AppContext } from "../../context/AppContext";
 import axios from "axios";
-import { Sprout, ArrowLeft, User, Phone, MapPin, Compass, CheckCircle2, Languages } from "lucide-react";
+import { Sprout, ArrowLeft, User, Phone, MapPin, Compass, CheckCircle2, Languages, Search } from "lucide-react";
 
-const CROPS_OPTIONS = ["Rice", "Wheat", "Soybean", "Cotton", "Maize", "Millets", "Groundnut"];
+const CROPS_OPTIONS = [
+  "Rice", "Wheat", "Soybean", "Cotton", "Maize", "Millets", "Groundnut",
+  "Bajra (Pearl Millet)", "Jowar (Sorghum)", "Ragi (Finger Millet)", "Barley",
+  "Tur / Arhar (Pigeon Pea)", "Chana (Chickpea)", "Moong (Green Gram)", "Urad (Black Gram)", "Masoor (Lentil)",
+  "Mustard (Sarson)", "Sunflower", "Sesame (Til)", "Sugarcane", "Jute",
+  "Onion", "Tomato", "Potato", "Chilli", "Turmeric (Haldi)", "Banana"
+];
 
 export const FarmerProfile = () => {
-  const { token, API_URL, translate } = useContext(AppContext);
+  const { token, API_URL, translate, changeLanguage } = useContext(AppContext);
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   // Profile Form Fields
@@ -21,6 +29,7 @@ export const FarmerProfile = () => {
   const [state, setState] = useState("");
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
+  const [cropSearchQuery, setCropSearchQuery] = useState("");
 
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -52,7 +61,7 @@ export const FarmerProfile = () => {
         setLongitude(p.longitude || "");
       } catch (err) {
         console.error(err);
-        setError("Failed to fetch profile settings.");
+        setError(t("fetch_profile_failed"));
       } finally {
         setLoading(false);
       }
@@ -71,7 +80,7 @@ export const FarmerProfile = () => {
 
   const detectLocation = () => {
     if (!navigator.geolocation) {
-      setError("Geolocation is not supported by your browser");
+      setError(t("geo_not_supported"));
       return;
     }
     setDetecting(true);
@@ -83,7 +92,7 @@ export const FarmerProfile = () => {
       },
       (err) => {
         console.error(err);
-        setError("GPS tracking permission denied.");
+        setError(t("gps_denied"));
         setDetecting(false);
       }
     );
@@ -96,7 +105,7 @@ export const FarmerProfile = () => {
     setSuccess("");
 
     if (selectedCrops.length === 0) {
-      setError("Please select at least one crop type.");
+      setError(t("select_one_crop_err"));
       setUpdating(false);
       return;
     }
@@ -117,11 +126,12 @@ export const FarmerProfile = () => {
       await axios.put(`${API_URL}/profile`, payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setSuccess("Profile settings updated successfully!");
+      changeLanguage(preferredLanguage);
+      setSuccess(t("profile_updated_success"));
       setTimeout(() => setSuccess(""), 4000);
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.error || "Failed to update profile parameters.");
+      setError(err.response?.data?.error || t("update_profile_failed"));
     } finally {
       setUpdating(false);
     }
@@ -131,7 +141,7 @@ export const FarmerProfile = () => {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center items-center">
         <div className="w-10 h-10 border-4 border-primary-500/20 border-t-primary-500 rounded-full animate-spin"></div>
-        <p className="mt-4 text-xs font-bold text-slate-400">Loading settings...</p>
+        <p className="mt-4 text-xs font-bold text-slate-400">{t("loading_settings")}</p>
       </div>
     );
   }
@@ -146,10 +156,10 @@ export const FarmerProfile = () => {
             to="/farmer/dashboard" 
             className="flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-white"
           >
-            <ArrowLeft className="w-4 h-4" /> {translate("dashboard")}
+            <ArrowLeft className="w-4 h-4" /> {t("dashboard")}
           </Link>
           <h2 className="font-extrabold text-base bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent">
-            {translate("profile")} Settings
+            {t("profile_settings_title")}
           </h2>
           <div className="w-16"></div> {/* Spacer */}
         </div>
@@ -177,7 +187,7 @@ export const FarmerProfile = () => {
               
               {/* Name */}
               <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1">Full Name</label>
+                <label className="block text-xs font-bold text-slate-400 mb-1">{t("full_name")}</label>
                 <div className="relative rounded-2xl shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                     <User className="w-4 h-4" />
@@ -194,7 +204,7 @@ export const FarmerProfile = () => {
 
               {/* Mobile (read-only index) */}
               <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1">Registered Mobile</label>
+                <label className="block text-xs font-bold text-slate-400 mb-1">{t("registered_mobile")}</label>
                 <div className="relative rounded-2xl shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-300">
                     <Phone className="w-4 h-4" />
@@ -210,7 +220,7 @@ export const FarmerProfile = () => {
 
               {/* Farm Size */}
               <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1">{translate("farm_size")}</label>
+                <label className="block text-xs font-bold text-slate-400 mb-1">{t("farm_size")}</label>
                 <div className="relative rounded-2xl shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                     <Compass className="w-4 h-4" />
@@ -228,7 +238,7 @@ export const FarmerProfile = () => {
 
               {/* Preferred Language */}
               <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1">Preferred Language</label>
+                <label className="block text-xs font-bold text-slate-400 mb-1">{t("preferred_language")}</label>
                 <div className="relative rounded-2xl shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                     <Languages className="w-4 h-4" />
@@ -236,10 +246,10 @@ export const FarmerProfile = () => {
                   <select
                     value={preferredLanguage}
                     onChange={(e) => setPreferredLanguage(e.target.value)}
-                    className="block w-full pl-10 pr-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-slate-850 dark:text-white"
+                    className="block w-full pl-10 pr-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-slate-850 dark:text-white cursor-pointer"
                   >
                     <option value="en">English</option>
-                    <option value="hi">हिन्दी</option>
+                    <option value="hi">हिंदी</option>
                     <option value="mr">मराठी</option>
                   </select>
                 </div>
@@ -251,10 +261,10 @@ export const FarmerProfile = () => {
 
             {/* Geographic Address */}
             <div className="space-y-4">
-              <h3 className="text-sm font-extrabold text-slate-700 dark:text-slate-300">Geographic Address</h3>
+              <h3 className="text-sm font-extrabold text-slate-700 dark:text-slate-300">{t("geographic_address")}</h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-2xs font-bold text-slate-400 mb-1">Village</label>
+                  <label className="block text-2xs font-bold text-slate-400 mb-1">{t("village")}</label>
                   <input
                     type="text"
                     required
@@ -264,7 +274,7 @@ export const FarmerProfile = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-2xs font-bold text-slate-400 mb-1">District</label>
+                  <label className="block text-2xs font-bold text-slate-400 mb-1">{t("district")}</label>
                   <input
                     type="text"
                     required
@@ -274,7 +284,7 @@ export const FarmerProfile = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-2xs font-bold text-slate-400 mb-1">State</label>
+                  <label className="block text-2xs font-bold text-slate-400 mb-1">{t("state")}</label>
                   <input
                     type="text"
                     required
@@ -290,7 +300,7 @@ export const FarmerProfile = () => {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                  GPS Coordinates
+                  {t("gps_coordinates")}
                 </label>
                 <button
                   type="button"
@@ -299,20 +309,20 @@ export const FarmerProfile = () => {
                   className="text-xs font-extrabold text-primary-500 hover:text-primary-600 flex items-center gap-1 focus:outline-none"
                 >
                   <MapPin className="w-3.5 h-3.5" />
-                  {detecting ? "Locating..." : "Autofill GPS Coordinates"}
+                  {detecting ? t("locating") : t("autofill_gps")}
                 </button>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <input
                   type="text"
-                  placeholder="Latitude"
+                  placeholder={t("latitude_placeholder")}
                   value={latitude}
                   onChange={(e) => setLatitude(e.target.value)}
                   className="block w-full px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-slate-850 dark:text-white"
                 />
                 <input
                   type="text"
-                  placeholder="Longitude"
+                  placeholder={t("longitude_placeholder")}
                   value={longitude}
                   onChange={(e) => setLongitude(e.target.value)}
                   className="block w-full px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-slate-850 dark:text-white"
@@ -322,29 +332,77 @@ export const FarmerProfile = () => {
 
             <hr className="border-slate-100 dark:border-slate-800" />
 
-            {/* Crops list */}
-            <div>
-              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">
-                Preferred Crop Types
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {CROPS_OPTIONS.map((crop) => (
+            {/* Preferred Crops Selection with Search & Fixed Scrollable Container */}
+            <div className="space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <label className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                  {t("preferred_crops")}
+                  <span className="px-2.5 py-0.5 rounded-full text-2xs bg-primary-500/10 text-primary-600 dark:text-primary-400 font-extrabold">
+                    {selectedCrops.length} Selected
+                  </span>
+                </label>
+                {selectedCrops.length > 0 && (
                   <button
-                    key={crop}
                     type="button"
-                    onClick={() => handleCropCheckbox(crop)}
-                    className={`px-4 py-2 rounded-xl border text-xs font-bold transition-all text-left flex items-center justify-between ${
-                      selectedCrops.includes(crop)
-                        ? "border-primary-500 bg-primary-500/10 text-primary-700 dark:text-primary-400"
-                        : "border-slate-200 dark:border-slate-800 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800"
-                    }`}
+                    onClick={() => setSelectedCrops([])}
+                    className="text-2xs font-extrabold text-rose-500 hover:underline self-end sm:self-auto"
                   >
-                    {crop}
-                    {selectedCrops.includes(crop) && (
-                      <span className="w-2 h-2 rounded-full bg-primary-500"></span>
-                    )}
+                    Clear Selection
                   </button>
-                ))}
+                )}
+              </div>
+
+              {/* Search input */}
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <Search className="w-4 h-4" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search 27+ Indian crops (e.g. Bajra, Turmeric, Tomato)..."
+                  value={cropSearchQuery}
+                  onChange={(e) => setCropSearchQuery(e.target.value)}
+                  className="block w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-800 dark:text-white"
+                />
+              </div>
+
+              {/* Vertically scrollable crop list container with fixed max height */}
+              <div className="max-h-56 overflow-y-auto p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 space-y-2 scrollbar-thin">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {CROPS_OPTIONS.filter((c) =>
+                    c.toLowerCase().includes(cropSearchQuery.toLowerCase())
+                  ).map((crop) => {
+                    const isSelected = selectedCrops.includes(crop);
+                    return (
+                      <button
+                        key={crop}
+                        type="button"
+                        onClick={() => handleCropCheckbox(crop)}
+                        className={`px-3 py-2 rounded-xl border text-xs font-bold transition-all text-left flex items-center justify-between ${
+                          isSelected
+                            ? "border-primary-500 bg-primary-500/15 text-primary-700 dark:text-primary-300 shadow-sm"
+                            : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:border-slate-300"
+                        }`}
+                      >
+                        <span className="truncate">{crop}</span>
+                        <span className={`w-3.5 h-3.5 rounded-md border flex items-center justify-center shrink-0 ml-1.5 ${
+                          isSelected
+                            ? "bg-primary-500 border-primary-500 text-white"
+                            : "border-slate-300 dark:border-slate-600"
+                        }`}>
+                          {isSelected && <span className="text-[9px]">✓</span>}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {CROPS_OPTIONS.filter((c) =>
+                  c.toLowerCase().includes(cropSearchQuery.toLowerCase())
+                ).length === 0 && (
+                  <p className="text-xs text-slate-400 text-center py-4">
+                    No matching crops found for "{cropSearchQuery}"
+                  </p>
+                )}
               </div>
             </div>
 
@@ -354,7 +412,7 @@ export const FarmerProfile = () => {
                 disabled={updating}
                 className="w-full flex justify-center py-3.5 px-4 rounded-2xl border border-transparent shadow-lg text-sm font-bold text-white bg-primary-500 hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-primary-500/25 transition-all disabled:opacity-50"
               >
-                {updating ? "Saving Changes..." : translate("save_profile")}
+                {updating ? t("saving_changes") : t("save_profile")}
               </button>
             </div>
 

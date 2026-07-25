@@ -67,11 +67,16 @@ def create_app():
             "version": "1.0.0"
         }), 200
 
-    # Start daily background scheduler
-    try:
-        start_scheduler()
-    except Exception as e:
-        app.logger.error(f"Failed to start APScheduler: {e}")
+    # Start background scheduler safely (handles both Flask debug reloader and Gunicorn WSGI production mode)
+    import os
+    run_main = os.environ.get("WERKZEUG_RUN_MAIN")
+    if run_main == "true" or (not app.debug and run_main is None):
+        try:
+            start_scheduler()
+        except Exception as e:
+            app.logger.error(f"Failed to start APScheduler: {e}")
+    else:
+        print("[SCHEDULER] Skipping scheduler start in supervisor process.", flush=True)
 
     return app
 
