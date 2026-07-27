@@ -197,13 +197,21 @@ const DICTIONARY = {
 import i18n from "../i18n";
 import axios from "axios";
 
+const getApiUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && envUrl.trim() !== "") {
+    return envUrl.trim().replace(/\/$/, "");
+  }
+  return "http://localhost:5001";
+};
+
 export const AppProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
   const [user, setUser] = useState(JSON.parse(localStorage.getItem("user")) || null);
   const [language, setLanguage] = useState(localStorage.getItem("agricast_lang") || localStorage.getItem("language") || "en");
   const [darkMode, setDarkMode] = useState(localStorage.getItem("darkMode") === "true");
 
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
+  const API_URL = getApiUrl();
 
   useEffect(() => {
     if (token) {
