@@ -78,7 +78,7 @@ export const LoginPage = () => {
           </div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-900 dark:text-white">
-          {isAdmin ? (translate("admin_login_btn") || "Admin Dashboard Access") : (translate("login") + " Portal" || "Farmer Sowing Advisory Login")}
+          {isAdmin ? translate("admin_portal_title") : translate("login_portal_title")}
         </h2>
         <p className="mt-2 text-center text-sm text-slate-500">
           Or{" "}
@@ -90,7 +90,7 @@ export const LoginPage = () => {
             }}
             className="font-bold text-primary-500 hover:text-primary-600 focus:outline-none"
           >
-            {isAdmin ? (translate("farmer") || "Access Farmer Portal") : (translate("admin") || "Access Admin Portal")}
+            {isAdmin ? translate("access_farmer_portal") : translate("access_admin_portal")}
           </button>
         </p>
       </div>

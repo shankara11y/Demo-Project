@@ -51,7 +51,20 @@ const DICTIONARY = {
     keypad_farmer_desc: "Keypad Farmer (SMS Mode Only)",
     smartphone_farmer_desc: "Smartphone Farmer (App Mode)",
     select_crop_prompt: "Choose crop to analyze suitability",
-    reasons_header: "Agronomic Explanations & Advice"
+    reasons_header: "Agronomic Explanations & Advice",
+    home: "Home",
+    mobile_number: "Mobile Number",
+    email_address: "Email Address",
+    password: "Password",
+    sign_in: "Sign In",
+    authenticating: "Authenticating...",
+    new_to_agricast: "New to AgriCast?",
+    register_farm_now: "Register Farm Now",
+    login_fail_msg: "Login authentication failed. Check your credentials.",
+    login_portal_title: "Farmer Sowing Advisory Login",
+    admin_portal_title: "Admin Dashboard Access",
+    access_admin_portal: "Access Admin Portal",
+    access_farmer_portal: "Access Farmer Portal"
   },
   hi: {
     title: "एग्रीकास्ट बुवाई सलाहकार प्रणाली",
@@ -101,7 +114,20 @@ const DICTIONARY = {
     keypad_farmer_desc: "कीपैड किसान (केवल एसएमएस)",
     smartphone_farmer_desc: "स्मार्टफोन किसान (ऐप मोड)",
     select_crop_prompt: "उपयुक्तता देखने के लिए फसल चुनें",
-    reasons_header: "कृषि विज्ञान स्पष्टीकरण और सलाह"
+    reasons_header: "कृषि विज्ञान स्पष्टीकरण और सलाह",
+    home: "मुख्यपृष्ठ",
+    mobile_number: "मोबाइल नंबर",
+    email_address: "ईमेल पता",
+    password: "पासवर्ड",
+    sign_in: "साइन इन करें",
+    authenticating: "प्रमाणीकृत किया जा रहा है...",
+    new_to_agricast: "एग्रीकास्ट पर नए हैं?",
+    register_farm_now: "अभी खेत पंजीकृत करें",
+    login_fail_msg: "लॉगिन विफल हुआ। कृपया अपने विवरण जांचें।",
+    login_portal_title: "किसान बुवाई सलाह लॉगिन",
+    admin_portal_title: "एडमिन डैशबोर्ड एक्सेस",
+    access_admin_portal: "एडमिन पोर्टल खोलें",
+    access_farmer_portal: "किसान पोर्टल खोलें"
   },
   mr: {
     title: "अ‍ॅग्रीकास्ट पेरणी सल्ला प्रणाली",
@@ -151,7 +177,20 @@ const DICTIONARY = {
     keypad_farmer_desc: "कीपॅड शेतकरी (फक्त एसएमएस)",
     smartphone_farmer_desc: "स्मार्टफोन शेतकरी (अ‍ॅप मोड)",
     select_crop_prompt: "योग्यतेची तपासणी करण्यासाठी पीक निवडा",
-    reasons_header: "कृषी वैज्ञानिक स्पष्टीकरण आणि सल्ला"
+    reasons_header: "कृषी वैज्ञानिक स्पष्टीकरण आणि सल्ला",
+    home: "मुख्यपृष्ठ",
+    mobile_number: "मोबाईल क्रमांक",
+    email_address: "ईमेल पत्ता",
+    password: "पासवर्ड",
+    sign_in: "साइन इन करा",
+    authenticating: "प्रमाणीकरण सुरू आहे...",
+    new_to_agricast: "अ‍ॅग्रीकास्ट वर नवीन आहात?",
+    register_farm_now: "आत्ताच शेत नोंदणी करा",
+    login_fail_msg: "लॉगिन अयशस्वी. कृपया आपली माहिती तपासा.",
+    login_portal_title: "शेतकरी पेरणी सल्ला लॉगिन",
+    admin_portal_title: "अ‍ॅडमिन डॅशबोर्ड अ‍ॅक्सेस",
+    access_admin_portal: "अ‍ॅडमिन पोर्टल उघडा",
+    access_farmer_portal: "शेतकरी पोर्टल उघडा"
   }
 };
 
