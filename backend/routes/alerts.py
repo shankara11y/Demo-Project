@@ -54,14 +54,15 @@ def trigger_alert():
     if not message:
         return jsonify({"error": "Alert message content is required"}), 400
 
-    # Build query filter for target farmers
+    # Build query filter for target farmers with case and whitespace resilience
+    import re
     query = {"role": "farmer"}
     if village_target:
-        query["village"] = village_target
+        query["village"] = {"$regex": f"^{re.escape(village_target.strip())}$", "$options": "i"}
     if district_target:
-        query["district"] = district_target
+        query["district"] = {"$regex": f"^{re.escape(district_target.strip())}$", "$options": "i"}
     if state_target:
-        query["state"] = state_target
+        query["state"] = {"$regex": f"^{re.escape(state_target.strip())}$", "$options": "i"}
         
     farmers = list(db.users.find(query))
     if not farmers:

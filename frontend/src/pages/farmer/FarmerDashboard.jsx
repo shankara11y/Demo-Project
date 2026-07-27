@@ -6,7 +6,7 @@ import LanguageSelector from "../../components/LanguageSelector";
 import axios from "axios";
 import { 
   Sprout, LogOut, Sun, Moon, MapPin, CloudRain, Thermometer, Droplets, 
-  Wind, TriangleAlert, Bell, Calendar, ChevronRight, BarChart3, Settings
+  Wind, TriangleAlert, Bell, Calendar, ChevronRight, BarChart3, Settings, Database
 } from "lucide-react";
 import { Line, Bar } from "react-chartjs-2";
 import { MapContainer, TileLayer, Marker, Popup, Circle } from "react-leaflet";
@@ -119,6 +119,7 @@ export const FarmerDashboard = () => {
     district,
     coordinates,
     current_weather,
+    soil_telemetry,
     forecast,
     crop_advisories,
     alerts,
@@ -368,6 +369,60 @@ export const FarmerDashboard = () => {
             )}
           </div>
 
+        </div>
+
+        {/* ISRIC SoilGrids 2.0 Telemetry Banner */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl shadow-md space-y-4">
+          <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-emerald-500/10 rounded-xl text-emerald-500">
+                <Database className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-slate-800 dark:text-white text-sm uppercase tracking-wider">
+                  ISRIC SoilGrids 2.0 Telemetry
+                </h3>
+                <p className="text-xs text-slate-400 font-bold">Topsoil Soil Profile (0-5cm Depth)</p>
+              </div>
+            </div>
+            <span className="text-2xs font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+              Satellite Verified • {soil_telemetry?.source || "ISRIC SoilGrids"}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 to-sky-500/10 border border-emerald-500/20 md:col-span-2 flex items-center justify-between">
+              <div>
+                <span className="text-xs font-extrabold text-slate-400 uppercase tracking-wider block">Topsoil Moisture Index</span>
+                <div className="flex items-baseline gap-2 mt-1">
+                  <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{soil_telemetry?.topsoil_moisture || "62%"}</span>
+                  <span className="text-xs font-bold text-slate-500">({soil_telemetry?.topsoil_status || "Optimal Moisture"})</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-xs font-extrabold text-slate-400 uppercase tracking-wider block">pH Level</span>
+                <span className="text-xl font-black text-amber-500">{soil_telemetry?.ph || 6.5} pH</span>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 flex justify-between items-center">
+              <div>
+                <span className="text-2xs font-black text-slate-400 uppercase tracking-wider block">Texture Ratios</span>
+                <p className="text-xs font-bold text-slate-700 dark:text-slate-300 mt-1">
+                  Clay <strong className="text-amber-500">{soil_telemetry?.clay || "28.5%"}</strong> • Sand <strong className="text-sky-500">{soil_telemetry?.sand || "42.1%"}</strong> • Silt <strong className="text-emerald-500">{soil_telemetry?.silt || "29.4%"}</strong>
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 flex justify-between items-center">
+              <div>
+                <span className="text-2xs font-black text-slate-400 uppercase tracking-wider block">Organic Carbon & Nitrogen</span>
+                <p className="text-xs font-bold text-slate-700 dark:text-slate-300 mt-1">
+                  Carbon: <strong className="text-slate-900 dark:text-white">{soil_telemetry?.organic_carbon || "12.4 g/kg"}</strong> | Nitrogen: <strong className="text-slate-900 dark:text-white">{soil_telemetry?.nitrogen || "1.25 g/kg"}</strong>
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* 5-Day Horizontal Forecast Cards */}

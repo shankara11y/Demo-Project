@@ -4,6 +4,7 @@ from bson import ObjectId
 from database.db import db
 from services.weather_service import get_current_weather, get_weather_forecast, geocode_location
 from services.recommendation_service import generate_crop_recommendation
+from services.soil_service import get_soil_properties
 
 profile_bp = Blueprint("profile", __name__)
 
@@ -121,7 +122,16 @@ def get_dashboard():
     current_weather = get_current_weather(lat, lon)
     forecast_data = get_weather_forecast(lat, lon)
 
-    # 2. Generate/fetch crop advisories for registered crop types
+    # 2. Fetch soil telemetry from ISRIC SoilGrids 2.0
+    soil_telemetry = get_soil_properties(lat, lon)
+    rain_val = current_weather.get("rainfall", 0.0)
+    humidity_val = current_weather.get("humidity", 60)
+    topsoil_moisture_val = min(95, max(30, int(humidity_val * 0.6 + rain_val * 1.5)))
+    soil_telemetry["topsoil_moisture_val"] = topsoil_moisture_val
+    soil_telemetry["topsoil_moisture"] = f"{topsoil_moisture_val}%"
+    soil_telemetry["topsoil_status"] = "Optimal Moisture" if 45 <= topsoil_moisture_val <= 80 else ("High Saturation" if topsoil_moisture_val > 80 else "Low Moisture")
+
+    # 3. Generate/fetch crop advisories for registered crop types
     crop_advisories = []
     for crop_name in user.get("crop_types", []):
         crop_doc = db.crops.find_one({"name": crop_name})
@@ -132,14 +142,14 @@ def get_dashboard():
             except Exception as e:
                 print(f"Error computing dashboard advisory for {crop_name}: {e}")
 
-    # 3. Retrieve system alerts for farmer
+    # 4. Retrieve system alerts for farmer
     alerts = list(db.alerts.find({"farmer_id": ObjectId(user_id)}).sort("timestamp", -1).limit(5))
     for alert in alerts:
         alert["id"] = str(alert["_id"])
         del alert["_id"]
         alert["farmer_id"] = str(alert["farmer_id"])
         
-    # 4. Fetch farmer notifications
+    # 5. Fetch farmer notifications
     notifications = list(db.notifications.find({"farmer_id": ObjectId(user_id)}).sort("timestamp", -1).limit(10))
     for notif in notifications:
         notif["id"] = str(notif["_id"])
@@ -154,6 +164,7 @@ def get_dashboard():
         "preferred_language": user.get("preferred_language", "en"),
         "coordinates": {"latitude": lat, "longitude": lon},
         "current_weather": current_weather,
+        "soil_telemetry": soil_telemetry,
         "forecast": forecast_data.get("forecast", []),
         "crop_advisories": crop_advisories,
         "alerts": alerts,

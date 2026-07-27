@@ -95,8 +95,9 @@ def admin_sms_broadcast():
     if not village or not message:
         return jsonify({"error": "Village name and message body are required"}), 400
         
-    # Query all farmers in the specified village
-    farmers = list(db.users.find({"role": "farmer", "village": {"$regex": f"^{village}$", "$options": "i"}}))
+    # Query all farmers in the specified village with case/whitespace resilience
+    import re
+    farmers = list(db.users.find({"role": "farmer", "village": {"$regex": f"^{re.escape(village.strip())}$", "$options": "i"}}))
     
     print("=== SMS BROADCAST SELECTEE LIST ===", flush=True)
     for f in farmers:
