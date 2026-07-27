@@ -48,7 +48,7 @@ ChartJS.register(
 );
 
 export const FarmerDashboard = () => {
-  const { token, logout, API_URL, translate, darkMode, toggleDarkMode } = useContext(AppContext);
+  const { token, logout, API_URL, translate, translateCrop, darkMode, toggleDarkMode } = useContext(AppContext);
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -332,7 +332,7 @@ export const FarmerDashboard = () => {
                         <Sprout className="w-5 h-5" />
                       </div>
                       <div>
-                        <h4 className="font-extrabold text-base">{crop.crop_name}</h4>
+                        <h4 className="font-extrabold text-base">{translateCrop(crop.crop_name)}</h4>
                         <p className="text-xs text-slate-400">Analysis Date: Today</p>
                       </div>
                     </div>

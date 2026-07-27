@@ -238,11 +238,79 @@ export const AppProvider = ({ children }) => {
     localStorage.removeItem("user");
   };
 
+const CROP_DICTIONARY = {
+  hi: {
+    "Rice": "चावल (धान)",
+    "Wheat": "गेहूं",
+    "Soybean": "सोयाबीन",
+    "Cotton": "कपास",
+    "Maize": "मक्का",
+    "Millets": "बाजरा/मोटा अनाज",
+    "Groundnut": "मूंगफली",
+    "Bajra (Pearl Millet)": "बाजरा",
+    "Jowar (Sorghum)": "ज्वार",
+    "Ragi (Finger Millet)": "रागी",
+    "Barley": "जौ",
+    "Tur / Arhar (Pigeon Pea)": "तूर / अरहर",
+    "Chana (Chickpea)": "चना",
+    "Moong (Green Gram)": "मूंग",
+    "Urad (Black Gram)": "उड़द",
+    "Masoor (Lentil)": "मसूर",
+    "Mustard (Sarson)": "सरसों",
+    "Sunflower": "सूरजमुखी",
+    "Sesame (Til)": "तिल",
+    "Sugarcane": "गन्ना",
+    "Jute": "पटसन (जूट)",
+    "Onion": "प्याज",
+    "Tomato": "टमाटर",
+    "Potato": "आलू",
+    "Chilli": "मिर्च",
+    "Turmeric (Haldi)": "हल्दी",
+    "Banana": "केला"
+  },
+  mr: {
+    "Rice": "तांदूळ (भात)",
+    "Wheat": "गहू",
+    "Soybean": "सोयाबीन",
+    "Cotton": "कापूस",
+    "Maize": "मका",
+    "Millets": "भरड धान्य",
+    "Groundnut": "भुईमूग",
+    "Bajra (Pearl Millet)": "बाजरी",
+    "Jowar (Sorghum)": "ज्वारी",
+    "Ragi (Finger Millet)": "नाचणी (रागी)",
+    "Barley": "सातू (जवस)",
+    "Tur / Arhar (Pigeon Pea)": "तूर",
+    "Chana (Chickpea)": "हरभरा (चना)",
+    "Moong (Green Gram)": "मूग",
+    "Urad (Black Gram)": "उडीद",
+    "Masoor (Lentil)": "मसूर",
+    "Mustard (Sarson)": "मोहरी",
+    "Sunflower": "सूर्यफूल",
+    "Sesame (Til)": "तीळ",
+    "Sugarcane": "ऊस",
+    "Jute": "अंबाडी (जूट)",
+    "Onion": "कांदा",
+    "Tomato": "टोमॅटो",
+    "Potato": "बटाटा",
+    "Chilli": "मिरची",
+    "Turmeric (Haldi)": "हळद",
+    "Banana": "केळी"
+  }
+};
+
   const translate = (key) => {
     if (i18n.exists(key)) {
       return i18n.t(key);
     }
     return DICTIONARY[language]?.[key] || DICTIONARY["en"]?.[key] || key;
+  };
+
+  const translateCrop = (cropName) => {
+    if (!cropName) return "";
+    const lang = language || "en";
+    if (lang === "en") return cropName;
+    return CROP_DICTIONARY[lang]?.[cropName] || CROP_DICTIONARY[lang]?.[cropName.trim()] || cropName;
   };
 
   const toggleDarkMode = () => {
@@ -262,6 +330,7 @@ export const AppProvider = ({ children }) => {
         login,
         logout,
         translate,
+        translateCrop,
         API_URL
       }}
     >

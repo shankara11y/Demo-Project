@@ -1,6 +1,7 @@
 import React, { useState, useContext, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
+import LanguageSelector from "../components/LanguageSelector";
 import axios from "axios";
 import { Sprout, Phone, Lock, Mail, Eye, EyeOff, ArrowLeft } from "lucide-react";
 
@@ -47,23 +48,27 @@ export const LoginPage = () => {
       }
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.error || "Login authentication failed. Check your inputs.");
+      setError(err.response?.data?.error || translate("login_fail_msg") || "Login authentication failed. Check your inputs.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 transition-colors duration-300">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 transition-colors duration-300 relative">
       
-      {/* Back button */}
-      <div className="absolute top-4 left-4">
+      {/* Top Controls: Back button left, Language Selector right */}
+      <div className="absolute top-4 left-4 z-10">
         <Link 
           to="/" 
           className="flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" /> Home
+          <ArrowLeft className="w-4 h-4" /> {translate("home") || "Home"}
         </Link>
+      </div>
+
+      <div className="absolute top-4 right-4 z-10">
+        <LanguageSelector />
       </div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -73,7 +78,7 @@ export const LoginPage = () => {
           </div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-900 dark:text-white">
-          {isAdmin ? "Admin Dashboard Access" : "Farmer Sowing Advisory Login"}
+          {isAdmin ? (translate("admin_login_btn") || "Admin Dashboard Access") : (translate("login") + " Portal" || "Farmer Sowing Advisory Login")}
         </h2>
         <p className="mt-2 text-center text-sm text-slate-500">
           Or{" "}
@@ -85,7 +90,7 @@ export const LoginPage = () => {
             }}
             className="font-bold text-primary-500 hover:text-primary-600 focus:outline-none"
           >
-            {isAdmin ? "Access Farmer Portal" : "Access Admin Portal"}
+            {isAdmin ? (translate("farmer") || "Access Farmer Portal") : (translate("admin") || "Access Admin Portal")}
           </button>
         </p>
       </div>
@@ -104,7 +109,7 @@ export const LoginPage = () => {
               // Admin Field (Email)
               <div>
                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Email Address
+                  {translate("email_address") || "Email Address"}
                 </label>
                 <div className="relative rounded-2xl shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -124,7 +129,7 @@ export const LoginPage = () => {
               // Farmer Field (Mobile)
               <div>
                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Mobile Number
+                  {translate("mobile_number") || "Mobile Number"}
                 </label>
                 <div className="relative rounded-2xl shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -146,7 +151,7 @@ export const LoginPage = () => {
             {/* Password */}
             <div>
               <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Password
+                {translate("password") || "Password"}
               </label>
               <div className="relative rounded-2xl shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -176,16 +181,16 @@ export const LoginPage = () => {
                 disabled={loading}
                 className="w-full flex justify-center py-3 px-4 rounded-2xl border border-transparent shadow-lg text-sm font-bold text-white bg-primary-500 hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-primary-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? "Authenticating..." : "Sign In"}
+                {loading ? (translate("authenticating") || "Authenticating...") : (translate("sign_in") || "Sign In")}
               </button>
             </div>
           </form>
 
           {!isAdmin && (
             <div className="mt-6 text-center">
-              <span className="text-sm text-slate-500">New to AgriCast? </span>
+              <span className="text-sm text-slate-500">{translate("new_to_agricast") || "New to AgriCast?"} </span>
               <Link to="/register" className="text-sm font-bold text-primary-500 hover:text-primary-600">
-                Register Farm Now
+                {translate("register_farm_now") || "Register Farm Now"}
               </Link>
             </div>
           )}

@@ -11,7 +11,7 @@ import confetti from "canvas-confetti";
 import { motion, AnimatePresence } from "framer-motion";
 
 export const CropRecommendation = () => {
-  const { token, API_URL, translate } = useContext(AppContext);
+  const { token, API_URL, translate, translateCrop } = useContext(AppContext);
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -141,7 +141,7 @@ export const CropRecommendation = () => {
               >
                 {crops.map((c) => (
                   <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900">
-                    {c.name} ({c.season} {t("crop")})
+                    {translateCrop(c.name)} ({c.season} {t("crop")})
                   </option>
                 ))}
               </select>
