@@ -78,6 +78,8 @@ def create_app():
     else:
         print("[SCHEDULER] Skipping scheduler start in supervisor process.", flush=True)
 
+    return app
+
 # Create WSGI application instance at top-level module scope for Gunicorn
 app = create_app()
 
