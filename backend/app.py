@@ -78,9 +78,9 @@ def create_app():
     else:
         print("[SCHEDULER] Skipping scheduler start in supervisor process.", flush=True)
 
-    return app
+# Create WSGI application instance at top-level module scope for Gunicorn
+app = create_app()
 
 if __name__ == "__main__":
-    app = create_app()
     print(f"AgriCast API running on http://{Config.HOST}:{Config.PORT}")
     app.run(host=Config.HOST, port=Config.PORT, debug=True)
