@@ -19,6 +19,7 @@ export const App = () => {
 
         {/* Farmer Dashboard Protected Routes */}
         <Route path="/farmer/dashboard" element={<FarmerDashboard />} />
+        <Route path="/farmer/recommendation" element={<CropRecommendation />} />
         <Route path="/farmer/recommendations" element={<CropRecommendation />} />
         <Route path="/farmer/profile" element={<FarmerProfile />} />
 
