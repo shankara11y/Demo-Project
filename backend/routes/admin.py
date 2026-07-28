@@ -4,9 +4,14 @@ from bson import ObjectId
 from datetime import datetime, timedelta
 import math
 import re
+import logging
+import traceback
+
 from database.db import db
 from services.weather_service import get_sentinel2_soil_data, get_current_weather
 from services.soil_service import get_soil_properties
+
+logger = logging.getLogger("agricast.admin")
 
 admin_bp = Blueprint("admin", __name__)
 
@@ -613,81 +618,88 @@ def clean_and_shorten_map_sms(raw_message, farmer=None):
 @admin_bp.route("/admin/map/send-alert", methods=["POST"])
 @jwt_required()
 def map_send_alert():
-    claims = get_jwt()
-    if claims.get("role") != "admin":
-        return jsonify({"error": "Unauthorized. Admin privileges required."}), 403
+    try:
+        claims = get_jwt()
+        if claims.get("role") != "admin":
+            return jsonify({"error": "Unauthorized. Admin privileges required."}), 403
+            
+        data = request.get_json() or {}
+        farmer_ids = data.get("farmer_ids", [])
+        message = data.get("message")
+
+        print(f"\n==================== [TRACE HTTP ENDPOINT RECEIVED] /admin/map/send-alert ====================", flush=True)
+        print(f"[TRACE REQ PAYLOAD] Farmer IDs ({len(farmer_ids)}): {farmer_ids}", flush=True)
+        print(f"[TRACE REQ PAYLOAD] Incoming Raw Message Body ({len(str(message))} chars):\n'{message}'\n---------------------------------------------------------", flush=True)
         
-    data = request.get_json() or {}
-    farmer_ids = data.get("farmer_ids", [])
-    message = data.get("message")
-
-    print(f"\n==================== [TRACE HTTP ENDPOINT RECEIVED] /admin/map/send-alert ====================", flush=True)
-    print(f"[TRACE REQ PAYLOAD] Farmer IDs ({len(farmer_ids)}): {farmer_ids}", flush=True)
-    print(f"[TRACE REQ PAYLOAD] Incoming Raw Message Body ({len(str(message))} chars):\n'{message}'\n---------------------------------------------------------", flush=True)
-    
-    if not farmer_ids or not message:
-        return jsonify({"error": "farmer_ids array and message body are required"}), 400
+        if not farmer_ids or not message:
+            return jsonify({"error": "farmer_ids array and message body are required"}), 400
+            
+        query_ids = []
+        for fid in farmer_ids:
+            query_ids.append(str(fid))
+            try:
+                query_ids.append(ObjectId(fid))
+            except Exception:
+                pass
+                
+        farmers = list(db.users.find({"_id": {"$in": query_ids}}))
+        print(f"[TRACE DB FETCH] Found {len(farmers)} farmer document(s) matching criteria.", flush=True)
         
-    query_ids = []
-    for fid in farmer_ids:
-        query_ids.append(str(fid))
-        try:
-            query_ids.append(ObjectId(fid))
-        except Exception:
-            pass
-            
-    farmers = list(db.users.find({"_id": {"$in": query_ids}}))
-    
-    print("=== SMS BROADCAST SELECTEE LIST ===", flush=True)
-    for f in farmers:
-        selected = f.get("verified_for_sms", False)
-        print(f"Farmer Name: {f.get('name')} | Mobile Number: {f.get('mobile')} | Village: {f.get('village')} | verified_for_sms: {selected} | Status: {'SELECTED' if selected else 'SKIPPED'}", flush=True)
-    print("====================================", flush=True)
+        print("=== SMS BROADCAST SELECTEE LIST ===", flush=True)
+        for f in farmers:
+            selected = f.get("verified_for_sms", False)
+            print(f"Farmer Name: {f.get('name')} | Mobile Number: {f.get('mobile')} | Village: {f.get('village')} | verified_for_sms: {selected} | Status: {'SELECTED' if selected else 'SKIPPED'}", flush=True)
+        print("====================================", flush=True)
 
-    success_count = 0
-    failed_count = 0
-    skipped_unverified = 0
-    
-    from services.sms_service import send_sms
-    
-    for f in farmers:
-        if not f.get("verified_for_sms", False):
-            skipped_unverified += 1
-            continue
-            
-        mobile = f.get("mobile")
-        if not mobile:
-            failed_count += 1
-            continue
-            
-        # Format plain-text, <= 160 character SMS specifically for Map Broadcast delivery
-        sms_message = clean_and_shorten_map_sms(message, farmer=f)
+        success_count = 0
+        failed_count = 0
+        skipped_unverified = 0
+        
+        from services.sms_service import send_sms
+        
+        for f in farmers:
+            if not f.get("verified_for_sms", False):
+                skipped_unverified += 1
+                continue
+                
+            mobile = f.get("mobile")
+            if not mobile:
+                failed_count += 1
+                continue
+                
+            # Format plain-text, <= 160 character SMS specifically for Map Broadcast delivery
+            sms_message = clean_and_shorten_map_sms(message, farmer=f)
 
-        print(f"[SMS DISPATCH PRE-SEND] Target: {f.get('name')} ({mobile}) | Length: {len(sms_message)} chars | Body: '{sms_message}'", flush=True)
-        logger.info(f"[SMS DISPATCH PRE-SEND] Target: {f.get('name')} ({mobile}) | Length: {len(sms_message)} chars | Body: '{sms_message}'")
+            print(f"[SMS DISPATCH PRE-SEND] Target: {f.get('name')} ({mobile}) | Length: {len(sms_message)} chars | Body: '{sms_message}'", flush=True)
+            logger.info(f"[SMS DISPATCH PRE-SEND] Target: {f.get('name')} ({mobile}) | Length: {len(sms_message)} chars | Body: '{sms_message}'")
 
-        res = send_sms(
-            mobile=mobile,
-            message=sms_message,
-            farmer_id=f["_id"],
-            farmer_name=f.get("name"),
-            village=f.get("village"),
-            district=f.get("district")
-        )
-        if res["success"]:
-            success_count += 1
-        else:
-            failed_count += 1
-            
-    total_count = success_count + failed_count
-    return jsonify({
-        "message": f"Alert dispatch complete. Dispatched to {success_count}/{total_count} farmers. Skipped {skipped_unverified} unverified.",
-        "success_count": success_count,
-        "total_count": total_count,
-        "success": success_count,
-        "failed": failed_count,
-        "skipped_unverified": skipped_unverified
-    }), 200
+            res = send_sms(
+                mobile=mobile,
+                message=sms_message,
+                farmer_id=f["_id"],
+                farmer_name=f.get("name"),
+                village=f.get("village"),
+                district=f.get("district")
+            )
+            if res["success"]:
+                success_count += 1
+            else:
+                failed_count += 1
+                
+        total_count = success_count + failed_count
+        return jsonify({
+            "message": f"Alert dispatch complete. Dispatched to {success_count}/{total_count} farmers. Skipped {skipped_unverified} unverified.",
+            "success_count": success_count,
+            "total_count": total_count,
+            "success": success_count,
+            "failed": failed_count,
+            "skipped_unverified": skipped_unverified
+        }), 200
+    except Exception as e:
+        err_trace = traceback.format_exc()
+        print(f"\n=== MAP SEND ALERT ERROR TRACEBACK ===\n{err_trace}======================================", flush=True)
+        logger.error(f"[MAP SEND ALERT ENDPOINT ERROR] {e}\n{err_trace}")
+        return jsonify({"error": f"Internal Server Error in map_send_alert: {str(e)}", "traceback": err_trace}), 500
 
 @admin_bp.route("/admin/map/district-details", methods=["GET"])
 @jwt_required()
