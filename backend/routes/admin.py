@@ -628,14 +628,15 @@ def map_send_alert():
     if not farmer_ids or not message:
         return jsonify({"error": "farmer_ids array and message body are required"}), 400
         
-    object_ids = []
+    query_ids = []
     for fid in farmer_ids:
+        query_ids.append(str(fid))
         try:
-            object_ids.append(ObjectId(fid))
+            query_ids.append(ObjectId(fid))
         except Exception:
-            continue
+            pass
             
-    farmers = list(db.users.find({"_id": {"$in": object_ids}}))
+    farmers = list(db.users.find({"_id": {"$in": query_ids}}))
     
     print("=== SMS BROADCAST SELECTEE LIST ===", flush=True)
     for f in farmers:

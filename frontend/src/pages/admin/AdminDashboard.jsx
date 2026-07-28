@@ -1496,7 +1496,8 @@ export const AdminDashboard = () => {
                           }
                           fetchData();
                         } catch (err) {
-                          alert("Failed to dispatch alert.");
+                          const errMsg = err.response?.data?.error || err.response?.data?.message || err.message || "Failed to dispatch alert.";
+                          alert("Failed to dispatch alert: " + errMsg);
                         } finally {
                           setGisSmsLoading(false);
                         }
