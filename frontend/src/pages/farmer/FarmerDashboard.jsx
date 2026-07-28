@@ -6,7 +6,7 @@ import LanguageSelector from "../../components/LanguageSelector";
 import axios from "axios";
 import { 
   Sprout, LogOut, Sun, Moon, MapPin, CloudRain, Thermometer, Droplets, 
-  Wind, TriangleAlert, Bell, Calendar, ChevronRight, BarChart3, Settings, Database
+  Wind, TriangleAlert, CheckCircle, Bell, Calendar, ChevronRight, BarChart3, Settings, Database
 } from "lucide-react";
 import { Line, Bar } from "react-chartjs-2";
 import { MapContainer, TileLayer, Marker, Popup, Circle } from "react-leaflet";
