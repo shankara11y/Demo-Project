@@ -21,8 +21,8 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    # Enable CORS for frontend interactions
-    CORS(app, resources={r"/*": {"origins": "*"}})
+    # Enable CORS for frontend interactions with explicit headers
+    CORS(app, resources={r"/*": {"origins": "*"}}, allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Origin"])
 
     # Setup JWT Manager
     jwt = JWTManager(app)

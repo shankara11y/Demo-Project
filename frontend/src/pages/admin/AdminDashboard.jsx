@@ -1496,8 +1496,12 @@ export const AdminDashboard = () => {
                           }
                           fetchData();
                         } catch (err) {
-                          const errMsg = err.response?.data?.error || err.response?.data?.message || err.message || "Failed to dispatch alert.";
-                          alert("Failed to dispatch alert: " + errMsg);
+                          if (err.message === "Network Error" || !err.response) {
+                            alert("Network Error: Unable to reach backend API. If deployed on Render free tier, the backend server may be spinning up from sleep mode (cold-start delay). Please wait 10-15 seconds and retry!");
+                          } else {
+                            const errMsg = err.response?.data?.error || err.response?.data?.message || err.message || "Failed to dispatch alert.";
+                            alert("Failed to dispatch alert: " + errMsg);
+                          }
                         } finally {
                           setGisSmsLoading(false);
                         }
