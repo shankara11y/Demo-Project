@@ -248,39 +248,70 @@ export const FarmerDashboard = () => {
           </Link>
         </div>
 
-        {/* Hazard Alert notifications */}
-        {alerts.length > 0 && (
-          <div className="p-4 sm:p-5 rounded-3xl bg-amber-500/10 border-2 border-amber-500/40 text-amber-950 dark:text-amber-200 flex items-start gap-3.5 shadow-md">
-            <TriangleAlert className="w-6 h-6 text-amber-500 shrink-0 mt-0.5 animate-pulse" />
-            <div className="space-y-1.5 flex-1">
-              <div className="flex items-center gap-2">
-                <h4 className="font-black text-sm uppercase tracking-wider text-amber-600 dark:text-amber-400">
-                  {t("active_warning")}
-                </h4>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-800 dark:text-amber-200 uppercase tracking-wide">
-                  Field Warning
-                </span>
-              </div>
+        {/* Hazard Alert / Advisory notification */}
+        {alerts.length > 0 && (() => {
+          const alertMsg = alerts[0].message;
+          const isFavorable = alertMsg.toLowerCase().includes("favorable") || 
+                              alertMsg.toLowerCase().includes("optimal") || 
+                              alertMsg.toLowerCase().includes("suitable") || 
+                              alertMsg.toLowerCase().includes("normal") ||
+                              alerts[0].type === "normal" || 
+                              alerts[0].type === "advisory";
+          
+          return (
+            <div className={`p-4 sm:p-5 rounded-3xl border-2 shadow-md flex items-start gap-3.5 ${
+              isFavorable 
+                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-950 dark:text-emerald-200" 
+                : "bg-amber-500/10 border-amber-500/40 text-amber-950 dark:text-amber-200"
+            }`}>
+              {isFavorable ? (
+                <CheckCircle className="w-6 h-6 text-emerald-500 shrink-0 mt-0.5" />
+              ) : (
+                <TriangleAlert className="w-6 h-6 text-amber-500 shrink-0 mt-0.5 animate-pulse" />
+              )}
               
-              <p className="text-sm font-extrabold leading-relaxed text-amber-900 dark:text-amber-100">
-                {alerts[0].message}
-                {!alerts[0].message.toLowerCase().includes("action") && (
-                  <span className="block mt-1 font-bold text-amber-800 dark:text-amber-300">
-                    ⚠️ {
-                      (alerts[0].type === "high_wind" || alerts[0].message.toLowerCase().includes("wind"))
-                        ? "Sowing Recommendation: Postpone sowing & spraying for 48 hours until wind calms down."
-                        : (alerts[0].type === "heavy_rain" || alerts[0].message.toLowerCase().includes("rain"))
-                        ? "Sowing Recommendation: Delay sowing for 48-72 hours due to heavy rain forecast."
-                        : (alerts[0].type === "heatwave" || alerts[0].message.toLowerCase().includes("heat"))
-                        ? "Sowing Recommendation: Avoid midday field operations & provide early morning irrigation."
-                        : "Sowing Recommendation: Exercise caution & delay sowing until weather stabilizes."
-                    }
+              <div className="space-y-1.5 flex-1">
+                <div className="flex items-center gap-2">
+                  <h4 className={`font-black text-sm uppercase tracking-wider ${
+                    isFavorable ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"
+                  }`}>
+                    {isFavorable ? "Sowing Advisory" : t("active_warning")}
+                  </h4>
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide ${
+                    isFavorable ? "bg-emerald-500/20 text-emerald-800 dark:text-emerald-200" : "bg-amber-500/20 text-amber-800 dark:text-amber-200"
+                  }`}>
+                    {isFavorable ? "Optimal Status" : "Field Warning"}
                   </span>
-                )}
-              </p>
+                </div>
+                
+                <p className={`text-sm font-extrabold leading-relaxed ${
+                  isFavorable ? "text-emerald-900 dark:text-emerald-100" : "text-amber-900 dark:text-amber-100"
+                }`}>
+                  {alertMsg}
+                  {!alertMsg.toLowerCase().includes("action") && (
+                    <span className={`block mt-1 font-bold ${
+                      isFavorable ? "text-emerald-800 dark:text-emerald-300" : "text-amber-800 dark:text-amber-300"
+                    }`}>
+                      {isFavorable ? (
+                        "✅ Sowing Recommendation: Conditions are favorable. Proceed with sowing as planned."
+                      ) : (
+                        `⚠️ ${
+                          (alerts[0].type === "high_wind" || alertMsg.toLowerCase().includes("wind"))
+                            ? "Sowing Recommendation: Postpone sowing & spraying for 48 hours until wind calms down."
+                            : (alerts[0].type === "heavy_rain" || alertMsg.toLowerCase().includes("rain"))
+                            ? "Sowing Recommendation: Delay sowing for 48-72 hours due to heavy rain forecast."
+                            : (alerts[0].type === "heatwave" || alertMsg.toLowerCase().includes("heat"))
+                            ? "Sowing Recommendation: Avoid midday field operations & provide early morning irrigation."
+                            : "Sowing Recommendation: Exercise caution & check local soil moisture before sowing."
+                        }`
+                      )}
+                    </span>
+                  )}
+                </p>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Current Weather & Forecast */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
