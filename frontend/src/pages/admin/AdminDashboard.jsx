@@ -237,19 +237,19 @@ export const AdminDashboard = () => {
         let msgBody = "";
         if (smsLanguageToggle === "en") {
           if (hasCriticalRain) {
-            msgBody = `HEAVY RAIN ALERT | ${district} District\nSoil: 85% (HIGH saturation >80%)\nWeather: Heavy rain forecast - SOWING POSTPONED\nCrop: ${primaryCrop} | Window: Jul 1-Jul 31\n\n- Postpone sowing for next 48 hours\n- Protect storage yards from rain\n- Ensure proper drainage in field\n\nAgriCast | IMD + ISRO + Crop Calendar`;
+            msgBody = `ALERT: Heavy Rain | ${district} | Crop: ${primaryCrop}. Risk: Heavy rain forecast. Action: Postpone sowing for 48h & ensure field drainage.`;
           } else if (hasLowMoisture) {
-            msgBody = `IRRIGATION ADVISORY | ${district} District\nSoil: 35% (LOW range 40-65%)\nWeather: No rain expected - IRRIGATION REQUIRED\nCrop: ${primaryCrop} | Window: Jul 1-Jul 31\n\n- Sowing requires light pre-irrigation\n- Apply organic mulch to save moisture\n- Prepare seedling nursery beds\n\nAgriCast | IMD + ISRO + Crop Calendar`;
+            msgBody = `ADVISORY: Dry Weather | ${district} | Crop: ${primaryCrop}. Risk: Low moisture. Action: Provide pre-sowing light irrigation before planting.`;
           } else {
-            msgBody = `OPTIMAL SOWING WINDOW | ${district} District\nSoil: 55% (IDEAL range 40-65%)\nWeather: Gentle rain forecast - PERFECT\nCrop: ${primaryCrop} | Window: Jul 1-Jul 31\n\n- Sow within next 48 hours\n- Apply basal fertilizer before sowing\n- Seed treatment: Thiram 3g/kg\n- Row spacing: 45cm\n\nAgriCast | IMD + ISRO + Crop Calendar`;
+            msgBody = `ADVISORY: Optimal Window | ${district} | Crop: ${primaryCrop}. Risk: None. Action: Complete sowing within 48h & apply basal fertilizer.`;
           }
         } else {
           if (hasCriticalRain) {
-            msgBody = `मुसळधार पाऊस इशारा | ${district} जिल्हा\nजमीन ओलावा: ८५% (अति-ओलावा)\nहवामान: मुसळधार पाऊस अंदाज - पेरणी पुढे ढकला\nपीक: ${primaryCrop} | कालावधी: १ जुलै - ३१ जुलै\n\n- पुढील ४८ तासांत पेरणी करू नका\n- साठवणूक केलेले धान्य पावसपासून सुरक्षित ठेवा\n- शेतात पाण्याचा निचरा होण्यासाठी गटार करा\n\nअ‍ॅग्रीकास्ट | IMD + ISRO + Crop Calendar`;
+            msgBody = `इशारा: मुसळधार पाऊस | ${district} | पीक: ${primaryCrop}. धोका: मुसळधार पाऊस. कृती: पुढील ४८ तास पेरणी टाळा व पाण्याचा निचरा करा.`;
           } else if (hasLowMoisture) {
-            msgBody = `सिंचन सल्लागार | ${district} जिल्हा\nजमीन ओलावा: ३५% (कमी श्रेणी ४०-६५%)\nहवामान: पाऊस अपेक्षित नाही - हलके सिंचन आवश्यक\nपीक: ${primaryCrop} | कालावधी: १ जुलै - ३१ जुलै\n\n- पेरणीपूर्वी शेतीला हलके पाणी द्या\n- ओलावा टिकवण्यासाठी सेंद्रिय आच्छादन वापरा\n- रोपवाटिका गादी वाफे तयार करा\n\nअ‍ॅग्रीकास्ट | IMD + ISRO + Crop Calendar`;
+            msgBody = `सल्ला: कोरडे हवामान | ${district} | पीक: ${primaryCrop}. धोका: कमी ओलावा. कृती: पेरणीपूर्वी हलके सिंचन द्या व आच्छादन वापरा.`;
           } else {
-            msgBody = `योग्य पेरणी कालावधी | ${district} जिल्हा\nजमीन ओलावा: ५५% (योग्य श्रेणी: ४०-६५%)\nहवामान: सौम्य पाऊस अंदाज - उत्तम हवामान\nपीक: ${primaryCrop} | कालावधी: १ जुलै - ३१ जुलै\n\n- पुढील ४८ तासांत पेरणी पूर्ण करा\n- पेरणीपूर्वी रासायनिक खतांचा बेस डोस द्या\n- बीजप्रक्रिया: थायरम ३ ग्रॅम प्रति किलो वापरा\n\nअ‍ॅग्रीकास्ट | IMD + ISRO + Crop Calendar`;
+            msgBody = `सल्ला: योग्य कालावधी | ${district} | पीक: ${primaryCrop}. धोका: नाही. कृती: पुढील ४८ तासांत पेरणी करा व बेस डोस द्या.`;
           }
         }
         setGisSmsMessage(msgBody);
@@ -1439,12 +1439,20 @@ export const AdminDashboard = () => {
                 </div>
 
                 {/* SMS Template textarea */}
-                <textarea
-                  value={gisSmsMessage}
-                  onChange={(e) => setGisSmsMessage(e.target.value)}
-                  placeholder="Select a village or region on the map to auto-generate the advisory warning SMS..."
-                  className="flex-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-[10px] leading-relaxed text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-amber-500 max-h-[160px] w-full resize-none min-h-[130px] transition-colors"
-                />
+                <div className="space-y-1">
+                  <textarea
+                    value={gisSmsMessage}
+                    onChange={(e) => setGisSmsMessage(e.target.value)}
+                    placeholder="Select a village or region on the map to auto-generate the advisory warning SMS..."
+                    className="flex-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-[10px] leading-relaxed text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-amber-500 max-h-[140px] w-full resize-none min-h-[110px] transition-colors"
+                  />
+                  <div className="flex justify-between items-center px-1 text-[9px] font-bold">
+                    <span className="text-slate-400">Concise GIS SMS Preview (1 Segment)</span>
+                    <span className={gisSmsMessage.length > 160 ? "text-rose-500 font-black" : "text-emerald-500 font-black"}>
+                      {gisSmsMessage.length}/160 characters
+                    </span>
+                  </div>
+                </div>
 
                 {/* Send triggers */}
                 <div>

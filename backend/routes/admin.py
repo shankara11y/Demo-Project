@@ -592,7 +592,7 @@ def clean_and_shorten_map_sms(raw_message, farmer=None):
         head = f"{alert_type} | {location}"
         if crop:
             head += f" | पीक: {crop}"
-        concise = f"{head}. सल्ला: {action_text}"
+        concise = f"{head}. कृती: {action_text}"
     else:
         head = f"{alert_type} | {location}"
         if crop:
