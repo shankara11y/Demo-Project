@@ -131,6 +131,9 @@ def send_sms(mobile, message, farmer_id=None, farmer_name=None, village=None, di
         for attempt in range(1, max_attempts + 1):
             print(f"[TWILIO DISPATCH] Attempt {attempt}/{max_attempts} for {to_number}...", flush=True)
             try:
+                print(f"[TWILIO API PRE-CALL] Destination: {to_number} | Body Length: {len(message)} chars | Body: '{message}'", flush=True)
+                logger.info(f"[TWILIO API PRE-CALL] Destination: {to_number} | Body Length: {len(message)} chars | Body: '{message}'")
+
                 client = _get_twilio_client(account_sid, auth_token)
                 if client:
                     msg_obj = client.messages.create(

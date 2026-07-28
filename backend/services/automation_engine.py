@@ -30,20 +30,20 @@ def evaluate_farmer_alert(weather, forecast_list, rec):
     )
     
     if is_thunderstorm:
-        return "THUNDERSTORM", f"THUNDERSTORM ALERT | Heavy thunderstorm & rain ({rainfall_1h:.1f}mm/h). Postpone all field work & sowing. Sowing window: {rec_date}."
+        return "THUNDERSTORM", f"ALERT: Heavy Rain | Risk: Thunderstorm ({rainfall_1h:.1f}mm/h). Action: Postpone all field work & sowing for 48h."
     elif is_heavy_rain:
-        return "HEAVY_RAIN", f"HEAVY RAIN ALERT | Heavy rain ({rainfall_1h:.1f}mm/h). Avoid sowing & fertilizer application to prevent washout. Best window: {rec_date}."
+        return "HEAVY_RAIN", f"ALERT: Heavy Rain | Risk: Heavy rain ({rainfall_1h:.1f}mm/h). Action: Postpone sowing & spraying for 48h to prevent washout."
     elif temp >= 40.0:
-        return "HEAT", f"HEAT WAVE ALERT | Extreme temperature ({temp:.1f}°C). Avoid mid-day field activities. Apply soil mulch. Sowing window: {rec_date}."
+        return "HEAT", f"ALERT: Extreme Heat | Risk: Heatwave ({temp:.1f}°C). Action: Avoid mid-day field activities. Provide early morning irrigation."
     elif wind_speed >= 30.0:
-        return "HIGH_WIND", f"HIGH WIND WARNING | Wind speed {wind_speed:.1f} km/h. Risk of crop damage & soil drying. Delay sowing & spraying operations."
+        return "HIGH_WIND", f"ALERT: High Wind | Risk: High wind ({wind_speed:.1f} km/h). Action: Delay sowing & spraying for 48h until wind calms down."
     elif suitability in ["Suitable", "Moderately Suitable"]:
         if rainfall_1h == 0.0 and "dry" in desc:
-            return "IRRIGATION", f"IRRIGATION ADVISORY | Dry weather detected. Apply pre-sowing light irrigation for optimal seed germination. Sowing date: {rec_date}."
+            return "IRRIGATION", f"ADVISORY: Dry Weather | Risk: Low moisture. Action: Provide pre-sowing light irrigation before planting."
         else:
-            return "SOWING_WINDOW", f"SOWING ADVISORY | Favorable weather & soil moisture for sowing. Recommended sowing date: {rec_date}. Confidence: {rec.get('confidence', 90)}%."
+            return "SOWING_WINDOW", f"ADVISORY: Optimal Window | Weather: Favorable. Action: Complete sowing within 48h. Recommended date: {rec_date}."
     else:
-        return "GENERAL_ADVISORY", f"CROP ADVISORY | Current conditions not optimal for sowing. Postpone sowing until weather normalizes. Recommended window: {rec_date}."
+        return "GENERAL_ADVISORY", f"ADVISORY: Weather Caution | Risk: Sub-optimal weather. Action: Postpone sowing until weather normalizes."
 
 def process_single_farmer_advisory(farmer, weather_cache, soil_cache):
     """

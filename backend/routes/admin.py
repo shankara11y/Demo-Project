@@ -654,6 +654,9 @@ def map_send_alert():
         # Format plain-text, <= 160 character SMS specifically for Map Broadcast delivery
         sms_message = clean_and_shorten_map_sms(message, farmer=f)
 
+        print(f"[SMS DISPATCH PRE-SEND] Target: {f.get('name')} ({mobile}) | Length: {len(sms_message)} chars | Body: '{sms_message}'", flush=True)
+        logger.info(f"[SMS DISPATCH PRE-SEND] Target: {f.get('name')} ({mobile}) | Length: {len(sms_message)} chars | Body: '{sms_message}'")
+
         res = send_sms(
             mobile=mobile,
             message=sms_message,
