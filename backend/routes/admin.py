@@ -511,6 +511,8 @@ def clean_and_shorten_map_sms(raw_message, farmer=None):
     if not raw_message:
         return ""
 
+    print(f"\n[TRACE 1: clean_and_shorten_map_sms INPUT] Raw Body ({len(str(raw_message))} chars): '{raw_message}'", flush=True)
+
     # Remove emojis and special non-text bullet symbols (e.g. 🌱, ▶, 🚨, ⚡, 🌧️, 🌾, •, ■, etc.)
     emoji_symbol_pattern = re.compile(
         "[\U0001f600-\U0001f64f"
@@ -536,6 +538,7 @@ def clean_and_shorten_map_sms(raw_message, farmer=None):
 
     # Return plain text directly if 160 chars or less
     if len(cleaned_single_line) <= 160:
+        print(f"[TRACE 2: clean_and_shorten_map_sms PASSTHROUGH <=160] ({len(cleaned_single_line)} chars): '{cleaned_single_line}'", flush=True)
         return cleaned_single_line
 
     # Parse components for concise SMS generation
@@ -604,6 +607,7 @@ def clean_and_shorten_map_sms(raw_message, farmer=None):
     if len(concise) > 160:
         concise = concise[:157].rstrip() + "..."
 
+    print(f"[TRACE 2: clean_and_shorten_map_sms GENERATED SHORTENED] ({len(concise)} chars): '{concise}'", flush=True)
     return concise
 
 @admin_bp.route("/admin/map/send-alert", methods=["POST"])
@@ -616,6 +620,10 @@ def map_send_alert():
     data = request.get_json() or {}
     farmer_ids = data.get("farmer_ids", [])
     message = data.get("message")
+
+    print(f"\n==================== [TRACE HTTP ENDPOINT RECEIVED] /admin/map/send-alert ====================", flush=True)
+    print(f"[TRACE REQ PAYLOAD] Farmer IDs ({len(farmer_ids)}): {farmer_ids}", flush=True)
+    print(f"[TRACE REQ PAYLOAD] Incoming Raw Message Body ({len(str(message))} chars):\n'{message}'\n---------------------------------------------------------", flush=True)
     
     if not farmer_ids or not message:
         return jsonify({"error": "farmer_ids array and message body are required"}), 400

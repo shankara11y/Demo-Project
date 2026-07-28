@@ -59,10 +59,14 @@ def send_sms(mobile, message, farmer_id=None, farmer_name=None, village=None, di
     
     # Enforce strict <= 160 character limit for single Twilio SMS segment delivery
     message_str = str(message or "").strip()
+    print(f"[TRACE 3: send_sms ENTRY] Received Message Body ({len(message_str)} chars): '{message_str}'", flush=True)
     if len(message_str) > 160:
+        print(f"[TRACE 3: send_sms TRUNCATION TRIGGERED] Slicing string from {len(message_str)} -> 160 chars", flush=True)
         message = message_str[:157].rstrip() + "..."
     else:
         message = message_str
+        
+    print(f"[TRACE 4: send_sms PROCESSED FINAL BODY] ({len(message)} chars): '{message}'", flush=True)
         
     # Strip any leading '+' for lookup keys
     clean_mobile_no_plus = clean_mobile[1:] if clean_mobile.startswith("+") else clean_mobile
@@ -131,8 +135,8 @@ def send_sms(mobile, message, farmer_id=None, farmer_name=None, village=None, di
         for attempt in range(1, max_attempts + 1):
             print(f"[TWILIO DISPATCH] Attempt {attempt}/{max_attempts} for {to_number}...", flush=True)
             try:
-                print(f"[TWILIO API PRE-CALL] Destination: {to_number} | Body Length: {len(message)} chars | Body: '{message}'", flush=True)
-                logger.info(f"[TWILIO API PRE-CALL] Destination: {to_number} | Body Length: {len(message)} chars | Body: '{message}'")
+                print(f"[TRACE 5: TWILIO API BODY TRANSMITTED] Destination: {to_number} | Length: {len(message)} chars | Body:\n'{message}'\n=========================================================", flush=True)
+                logger.info(f"[TRACE 5: TWILIO API BODY TRANSMITTED] Destination: {to_number} | Length: {len(message)} chars | Body: '{message}'")
 
                 client = _get_twilio_client(account_sid, auth_token)
                 if client:
