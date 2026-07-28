@@ -57,6 +57,13 @@ def send_sms(mobile, message, farmer_id=None, farmer_name=None, village=None, di
     timestamp = datetime.now()
     clean_mobile = str(mobile).strip()
     
+    # Enforce strict <= 160 character limit for single Twilio SMS segment delivery
+    message_str = str(message or "").strip()
+    if len(message_str) > 160:
+        message = message_str[:157].rstrip() + "..."
+    else:
+        message = message_str
+        
     # Strip any leading '+' for lookup keys
     clean_mobile_no_plus = clean_mobile[1:] if clean_mobile.startswith("+") else clean_mobile
 
