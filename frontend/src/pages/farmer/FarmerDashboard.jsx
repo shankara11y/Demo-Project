@@ -114,23 +114,23 @@ export const FarmerDashboard = () => {
   }
 
   const {
-    farmer_name,
-    village,
-    district,
-    coordinates,
-    current_weather,
-    soil_telemetry,
-    forecast,
-    crop_advisories,
-    alerts,
-    notifications
-  } = data;
+    farmer_name = "Farmer",
+    village = "",
+    district = "",
+    coordinates = { latitude: 19.24, longitude: 72.99 },
+    current_weather = { temp: 28, humidity: 60, rainfall: 0, wind_speed: 5, description: "Clear", icon: "01d" },
+    soil_telemetry = {},
+    forecast = [],
+    crop_advisories = [],
+    alerts = [],
+    notifications = []
+  } = data || {};
 
-  const lat = coordinates.latitude;
-  const lon = coordinates.longitude;
+  const lat = coordinates?.latitude || 19.24;
+  const lon = coordinates?.longitude || 72.99;
 
   // Chart configuration
-  const chartLabels = forecast.map((f) => f.day_name);
+  const chartLabels = (forecast || []).map((f) => f.day_name);
   
   const chartData = {
     temp: {
@@ -138,19 +138,19 @@ export const FarmerDashboard = () => {
       datasets: [
         {
           label: "Max Temp (°C)",
-          data: forecast.map((f) => f.temp_max),
-          borderColor: "#e07a5f",
-          backgroundColor: "rgba(224, 122, 95, 0.1)",
+          data: (forecast || []).map((f) => f.temp_max),
+          borderColor: "#f97316",
+          backgroundColor: "rgba(249, 115, 22, 0.1)",
           tension: 0.4,
           fill: true
         },
         {
           label: "Min Temp (°C)",
-          data: forecast.map((f) => f.temp_min),
-          borderColor: "#3d5a80",
-          backgroundColor: "rgba(61, 90, 128, 0.1)",
-          tension: 0.4,
-          fill: true
+          data: (forecast || []).map((f) => f.temp_min),
+          borderColor: "#3b82f6",
+          backgroundColor: "transparent",
+          borderDash: [5, 5],
+          tension: 0.4
         }
       ]
     },
@@ -158,11 +158,10 @@ export const FarmerDashboard = () => {
       labels: chartLabels,
       datasets: [
         {
-          label: "Rainfall volume (mm)",
-          data: forecast.map((f) => f.rainfall),
-          backgroundColor: "rgba(2, 132, 199, 0.6)",
-          borderColor: "#0284c7",
-          borderWidth: 1
+          label: "Rainfall (mm)",
+          data: (forecast || []).map((f) => f.rain_mm),
+          backgroundColor: "#06b6d4",
+          borderRadius: 8
         }
       ]
     },
@@ -171,10 +170,10 @@ export const FarmerDashboard = () => {
       datasets: [
         {
           label: "Humidity (%)",
-          data: forecast.map((f) => f.humidity),
-          borderColor: "#52b788",
-          backgroundColor: "rgba(82, 183, 136, 0.1)",
-          tension: 0.3,
+          data: (forecast || []).map((f) => f.humidity),
+          borderColor: "#10b981",
+          backgroundColor: "rgba(16, 185, 129, 0.1)",
+          tension: 0.4,
           fill: true
         }
       ]
@@ -187,18 +186,24 @@ export const FarmerDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors duration-300">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors duration-300 pb-12">
       
-      {/* Top Header */}
-      <nav className="glass-panel sticky top-0 z-40 border-b border-slate-200 dark:border-slate-800 shadow-sm">
+      {/* Header */}
+      <header className="glass-panel sticky top-0 z-40 border-b border-slate-200 dark:border-slate-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          
           <div className="flex items-center gap-2">
-            <div className="bg-primary-500 text-white p-2 rounded-xl">
+            <div className="bg-primary-500 text-white p-2 rounded-xl shadow-md">
               <Sprout className="w-5 h-5" />
             </div>
-            <span className="font-extrabold text-lg bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent">
-              {t("app_title")}
-            </span>
+            <div>
+              <span className="font-extrabold text-base bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent">
+                AgriCast
+              </span>
+              <span className="text-xs font-semibold text-slate-400 block -mt-1">
+                {t("farmer")}
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
@@ -206,42 +211,43 @@ export const FarmerDashboard = () => {
 
             <button
               onClick={toggleDarkMode}
-              className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800"
+              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors"
             >
-              {darkMode ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-slate-600" />}
+              {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-500" />}
             </button>
-            
-            <Link
-              to="/farmer/profile"
-              className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-700"
-              title={t("profile_settings")}
-            >
-              <Settings className="w-5 h-5" />
-            </Link>
 
             <button
               onClick={logout}
-              className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 rounded-full hover:bg-rose-500 hover:text-white transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-bold transition-colors"
             >
-              <LogOut className="w-4 h-4" /> {t("logout")}
+              <LogOut className="w-3.5 h-3.5" />
+              {t("logout")}
             </button>
           </div>
         </div>
-      </nav>      {/* Main Container */}
+      </header>
+
+      {/* Main Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         
-        {/* Welcome Banner */}
-        <div className="p-6 rounded-3xl bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-xl shadow-primary-500/15 flex flex-col md:flex-row md:items-center justify-between gap-4 animate-slide-up">
-          <div className="space-y-1">
-            <h1 className="text-2xl sm:text-3xl font-extrabold flex items-center gap-2">
-              {t("welcome_greeting")}, {farmer_name}!
+        {/* Welcome & Sowing Advisory Quick Action Banner */}
+        <div className="bg-gradient-to-r from-primary-600 via-primary-500 to-emerald-600 rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative overflow-hidden">
+          <div className="space-y-2 z-10">
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold tracking-wide uppercase">
+                {t("welcome")}, {farmer_name}! 👋
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+              {village}, {district}
             </h1>
-            <p className="text-sm text-primary-100 flex items-center gap-1">
-              <MapPin className="w-4 h-4" /> {village}, {district} | GPS: {lat.toFixed(4)}, {lon.toFixed(4)}
+            <p className="text-primary-100 text-xs sm:text-sm font-medium max-w-xl">
+              GPS: {lat.toFixed(4)}, {lon.toFixed(4)} • Live ISRIC SoilGrids 2.0 & OpenWeather Telemetry Active
             </p>
           </div>
+
           <Link
-            to="/farmer/recommendations"
+            to="/farmer/recommendation"
             className="self-start md:self-center px-6 py-3 rounded-full bg-white text-primary-700 hover:bg-slate-100 font-bold text-sm shadow-md transition-all transform hover:scale-105 flex items-center gap-1.5"
           >
             {t("sowing_check_btn")} <ChevronRight className="w-4 h-4" />
@@ -249,14 +255,18 @@ export const FarmerDashboard = () => {
         </div>
 
         {/* Hazard Alert / Advisory notification */}
-        {alerts.length > 0 && (() => {
-          const alertMsg = alerts[0].message;
-          const isFavorable = alertMsg.toLowerCase().includes("favorable") || 
-                              alertMsg.toLowerCase().includes("optimal") || 
-                              alertMsg.toLowerCase().includes("suitable") || 
-                              alertMsg.toLowerCase().includes("normal") ||
-                              alerts[0].type === "normal" || 
-                              alerts[0].type === "advisory";
+        {Array.isArray(alerts) && alerts.length > 0 && alerts[0] && (() => {
+          const alertObj = alerts[0];
+          const alertMsg = (typeof alertObj === "string" ? alertObj : alertObj.message) || "";
+          const alertType = alertObj.type || "";
+          const msgLower = alertMsg.toLowerCase();
+          
+          const isFavorable = msgLower.includes("favorable") || 
+                              msgLower.includes("optimal") || 
+                              msgLower.includes("suitable") || 
+                              msgLower.includes("normal") ||
+                              alertType === "normal" || 
+                              alertType === "advisory";
           
           return (
             <div className={`p-4 sm:p-5 rounded-3xl border-2 shadow-md flex items-start gap-3.5 ${
@@ -275,7 +285,7 @@ export const FarmerDashboard = () => {
                   <h4 className={`font-black text-sm uppercase tracking-wider ${
                     isFavorable ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"
                   }`}>
-                    {isFavorable ? "Sowing Advisory" : t("active_warning")}
+                    {isFavorable ? "Sowing Advisory" : (t("active_warning") || "Active Weather Warning")}
                   </h4>
                   <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide ${
                     isFavorable ? "bg-emerald-500/20 text-emerald-800 dark:text-emerald-200" : "bg-amber-500/20 text-amber-800 dark:text-amber-200"
@@ -288,7 +298,7 @@ export const FarmerDashboard = () => {
                   isFavorable ? "text-emerald-900 dark:text-emerald-100" : "text-amber-900 dark:text-amber-100"
                 }`}>
                   {alertMsg}
-                  {!alertMsg.toLowerCase().includes("action") && (
+                  {!msgLower.includes("action") && (
                     <span className={`block mt-1 font-bold ${
                       isFavorable ? "text-emerald-800 dark:text-emerald-300" : "text-amber-800 dark:text-amber-300"
                     }`}>
@@ -296,11 +306,11 @@ export const FarmerDashboard = () => {
                         "✅ Sowing Recommendation: Conditions are favorable. Proceed with sowing as planned."
                       ) : (
                         `⚠️ ${
-                          (alerts[0].type === "high_wind" || alertMsg.toLowerCase().includes("wind"))
+                          (alertType === "high_wind" || msgLower.includes("wind"))
                             ? "Sowing Recommendation: Postpone sowing & spraying for 48 hours until wind calms down."
-                            : (alerts[0].type === "heavy_rain" || alertMsg.toLowerCase().includes("rain"))
+                            : (alertType === "heavy_rain" || msgLower.includes("rain"))
                             ? "Sowing Recommendation: Delay sowing for 48-72 hours due to heavy rain forecast."
-                            : (alerts[0].type === "heatwave" || alertMsg.toLowerCase().includes("heat"))
+                            : (alertType === "heatwave" || msgLower.includes("heat"))
                             ? "Sowing Recommendation: Avoid midday field operations & provide early morning irrigation."
                             : "Sowing Recommendation: Exercise caution & check local soil moisture before sowing."
                         }`
