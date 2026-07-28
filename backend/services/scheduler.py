@@ -132,13 +132,20 @@ def run_daily_advisory_broadcast():
                 alert_val = str(weather["wind_speed"])
                 
             if alert_type:
-                # Store hazard alerts in system
-                alert_msg = f"Severe {alert_type.replace('_', ' ')} detected at farmer location: {weather['temp']}°C, {weather['rainfall']}mm."
+                advice_map = {
+                    "high_wind": "Action Required: Postpone sowing & chemical spraying for 48 hours to avoid crop lodging and wind drift. Secure young seedlings and install temporary windbreaks.",
+                    "heavy_rain": "Action Required: Delay sowing for 48-72 hours. Ensure open field drainage channels to prevent waterlogging and root rot.",
+                    "heatwave": "Action Required: Avoid midday field operations. Apply light early-morning micro-irrigation to protect topsoil moisture and reduce crop heat stress."
+                }
+                rec_action = advice_map.get(alert_type, "Action Required: Exercise caution and check local field condition before sowing.")
+                alert_msg = f"Severe {alert_type.replace('_', ' ')} detected at farmer location ({weather['temp']}°C, {weather['wind_speed']} km/h wind). {rec_action}"
+
                 db.alerts.insert_one({
                     "farmer_id": farmer_id,
                     "type": alert_type,
                     "value": alert_val,
                     "message": alert_msg,
+                    "recommendation": rec_action,
                     "timestamp": datetime.now()
                 })
                 # Format localized warning

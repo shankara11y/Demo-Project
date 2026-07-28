@@ -19,10 +19,13 @@ export const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Sync parameter updates
+  // Sync parameter updates and clear pre-filled form fields
   useEffect(() => {
     setIsAdmin(searchParams.get("role") === "admin");
     setError("");
+    setPassword("");
+    setMobile("");
+    setEmail("");
   }, [searchParams]);
 
   const handleSubmit = async (e) => {
@@ -85,6 +88,9 @@ export const LoginPage = () => {
           <button 
             onClick={() => {
               setError("");
+              setPassword("");
+              setMobile("");
+              setEmail("");
               setIsAdmin(!isAdmin);
               navigate(isAdmin ? "/login" : "/login?role=admin");
             }}
@@ -99,12 +105,12 @@ export const LoginPage = () => {
         <div className="bg-white dark:bg-slate-900 py-8 px-4 border border-slate-200 dark:border-slate-800 shadow-xl rounded-3xl sm:px-10">
           
           {error && (
-            <div className="mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-sm font-bold">
+            <div className="mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-sm font-bold text-center">
               {error}
             </div>
           )}
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="space-y-6" onSubmit={handleSubmit} autoComplete="off">
             {isAdmin ? (
               // Admin Field (Email)
               <div>
@@ -118,6 +124,7 @@ export const LoginPage = () => {
                   <input
                     type="email"
                     required
+                    autoComplete="off"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="officer@agricast.gov.in"
@@ -139,6 +146,7 @@ export const LoginPage = () => {
                     type="tel"
                     required
                     maxLength={10}
+                    autoComplete="off"
                     value={mobile}
                     onChange={(e) => setMobile(e.target.value.replace(/\D/g, ""))}
                     placeholder="9876543210"
@@ -160,6 +168,7 @@ export const LoginPage = () => {
                 <input
                   type={showPassword ? "text" : "password"}
                   required
+                  autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
